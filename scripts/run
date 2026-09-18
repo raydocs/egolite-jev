@@ -1,9 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/ego-verified-actions.XXXXXX.json")"
-CONFIG="${HOME}/.config/ego-verified-actions/env"
-if [[ -z "${OPENROUTER_API_KEY:-}" && -f "$CONFIG" ]]; then
+ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev.XXXXXX.json")"
+CONFIG=""
+for candidate in \
+  "${HOME}/.config/egolite-jev/env" \
+  "${HOME}/.config/ego-verified-actions/env"
+do
+  if [[ -f "$candidate" ]]; then
+    CONFIG="$candidate"
+    break
+  fi
+done
+if [[ -z "${OPENROUTER_API_KEY:-}" && -n "$CONFIG" ]]; then
   # shellcheck disable=SC1090
   set -a
   source "$CONFIG"

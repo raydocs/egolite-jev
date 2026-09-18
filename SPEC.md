@@ -1,4 +1,4 @@
-# ego-verified-actions — locked spec
+# egolite-jev — locked spec
 
 Companion skill for **ego-lite 0.4.7.4** (global helpers: `useOrCreateTaskSpace`, `snapshot()`, `click('@N')`).
 

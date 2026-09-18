@@ -1,4 +1,4 @@
-# ego-verified-actions
+# egolite-jev
 
 [English](README.md) · [中文](README.zh-CN.md)
 
@@ -15,13 +15,13 @@
 ### 安装（Claude Code 与 Codex）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/raydocs/ego-verified-actions/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/raydocs/egolite-jev/main/scripts/install.sh | bash
 ```
 
-脚本会把 skill 链到 `~/.claude/skills` 和 `~/.codex/skills`，然后询问 [OpenRouter](https://openrouter.ai/keys) 的 key（`sk-or-…`）。key 保存在 `~/.config/ego-verified-actions/env`（权限 600）。之后 `scripts/run` 自动读取，不必每轮 `export`。
+脚本会把 skill 链到 `~/.claude/skills` 和 `~/.codex/skills`，然后询问 [OpenRouter](https://openrouter.ai/keys) 的 key（`sk-or-…`）。key 保存在 `~/.config/egolite-jev/env`（权限 600）。之后 `scripts/run` 自动读取，不必每轮 `export`。
 
 ```bash
-npx skills add raydocs/ego-verified-actions
+npx skills add raydocs/egolite-jev
 ```
 
 需要 `ego-browser` 在 `PATH` 上。
@@ -29,13 +29,13 @@ npx skills add raydocs/ego-verified-actions
 ### 丢给 agent 的话
 
 ```
-Read the ego-verified-actions skill. Do not dump snapshotText() into chat.
+Read the egolite-jev skill. Do not dump snapshotText() into chat.
 Run:
 GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' \
-  ~/.claude/skills/ego-verified-actions/scripts/run
+  ~/.claude/skills/egolite-jev/scripts/run
 ```
 
-Codex 把路径换成 `~/.codex/skills/ego-verified-actions/scripts/run`。  
+Codex 把路径换成 `~/.codex/skills/egolite-jev/scripts/run`。  
 仅当 `ok: true` 且 `page.url` 含 `/document` 才算通过。打印 `elapsed_ms` 和 `steps[].via`。
 
 ---

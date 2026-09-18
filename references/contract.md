@@ -1,6 +1,6 @@
 # Runner Contract & Specifications
 
-This document defines the contract between the orchestrating agent and `ego-verified-actions`.
+This document defines the contract between the orchestrating agent and `egolite-jev`.
 
 ## 1. Input Contract
 

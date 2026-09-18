@@ -1,9 +1,9 @@
 ---
-name: ego-verified-actions
+name: egolite-jev
 description: Trigger when automating multi-step browser interactions where target buttons or links are uncertain, delegating bounded DOM navigation in ego-lite, selecting next actions via Jev fast decisions without snapshot dumps, or requiring verified page state checks before declaring browser task completion.
 ---
 
-# ego-verified-actions
+# egolite-jev
 
 Delegate bounded DOM navigation to a fast candidate-selection loop inside ego-browser. Jev picks among opaque, pre-ranked candidate actions; the runner returns checkable evidence. `DONE` from Jev is never treated as success without independent verification.
 
@@ -28,7 +28,7 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - `SUCCESS_MATCH` is verified against `(url + " " + title).toLowerCase()`.
 - Fill values come strictly from `JEV_FILL` (JSON map); missing values escalate to `need_llm`.
 - Budget is capped at 4 actions (max 8).
-- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/ego-verified-actions/env` from `scripts/install.sh`. Do not paste the key into the transcript if that file exists.
+- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh`. Do not paste the key into the transcript if that file exists.
 
 ## Result Handling
 

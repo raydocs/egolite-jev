@@ -158,8 +158,8 @@ function jevAuth(args) {
       headers: {
         Authorization: 'Bearer ' + args.openrouterKey,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/ego-verified-actions',
-        'X-Title': 'ego-verified-actions',
+        'HTTP-Referer': 'https://github.com/raydocs/egolite-jev',
+        'X-Title': 'egolite-jev',
       },
     }
   }

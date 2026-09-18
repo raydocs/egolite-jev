@@ -1,4 +1,4 @@
-# ego-verified-actions
+# egolite-jev
 
 [English](README.md) · [中文](README.zh-CN.md)
 
@@ -15,13 +15,13 @@ It does not dump `snapshotText()` into the coding model between clicks.
 ### Install (Claude Code & Codex)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/raydocs/ego-verified-actions/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/raydocs/egolite-jev/main/scripts/install.sh | bash
 ```
 
-The script links the skill into `~/.claude/skills` and `~/.codex/skills`, then asks for an [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`). The key is stored at `~/.config/ego-verified-actions/env` (mode 600). `scripts/run` reads it; you do not export it every session.
+The script links the skill into `~/.claude/skills` and `~/.codex/skills`, then asks for an [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`). The key is stored at `~/.config/egolite-jev/env` (mode 600). `scripts/run` reads it; you do not export it every session.
 
 ```bash
-npx skills add raydocs/ego-verified-actions
+npx skills add raydocs/egolite-jev
 ```
 
 Requires `ego-browser` on `PATH`.
@@ -29,13 +29,13 @@ Requires `ego-browser` on `PATH`.
 ### Give this to the agent
 
 ```
-Read the ego-verified-actions skill. Do not dump snapshotText() into chat.
+Read the egolite-jev skill. Do not dump snapshotText() into chat.
 Run:
 GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' \
-  ~/.claude/skills/ego-verified-actions/scripts/run
+  ~/.claude/skills/egolite-jev/scripts/run
 ```
 
-Codex: use `~/.codex/skills/ego-verified-actions/scripts/run`.  
+Codex: use `~/.codex/skills/egolite-jev/scripts/run`.  
 Pass only if `ok: true` and `page.url` contains `/document`. Print `elapsed_ms` and `steps[].via`.
 
 ---

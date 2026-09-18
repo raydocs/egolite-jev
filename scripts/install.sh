@@ -1,10 +1,10 @@
 #!/bin/bash
-# Install ego-verified-actions for Claude Code and Codex, then ask for an OpenRouter key.
+# Install egolite-jev for Claude Code and Codex, then ask for an OpenRouter key.
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/raydocs/ego-verified-actions.git}"
-SHARE="${HOME}/.local/share/ego-verified-actions"
-CONFIG_DIR="${HOME}/.config/ego-verified-actions"
+REPO_URL="${REPO_URL:-https://github.com/raydocs/egolite-jev.git}"
+SHARE="${HOME}/.local/share/egolite-jev"
+CONFIG_DIR="${HOME}/.config/egolite-jev"
 CONFIG="${CONFIG_DIR}/env"
 
 if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
@@ -30,12 +30,18 @@ link_skill() {
   echo "skill -> $dest"
 }
 
-link_skill "${HOME}/.claude/skills/ego-verified-actions"
-link_skill "${HOME}/.codex/skills/ego-verified-actions"
-link_skill "${HOME}/.agents/skills/ego-verified-actions"
+link_skill "${HOME}/.claude/skills/egolite-jev"
+link_skill "${HOME}/.codex/skills/egolite-jev"
+link_skill "${HOME}/.agents/skills/egolite-jev"
 
 mkdir -p "$CONFIG_DIR"
 chmod 700 "$CONFIG_DIR"
+OLD_CONFIG="${HOME}/.config/ego-verified-actions/env"
+if [[ -f "$OLD_CONFIG" && ! -f "$CONFIG" ]]; then
+  cp "$OLD_CONFIG" "$CONFIG"
+  chmod 600 "$CONFIG"
+  echo "Moved saved key to $CONFIG"
+fi
 
 prompt_key() {
   local key=""
