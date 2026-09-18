@@ -1,6 +1,6 @@
 # ego-verified-actions — locked spec
 
-Companion skill for **ego-lite 0.4.7.4** (global helpers: `useOrCreateTaskSpace`, `snapshot()`, `click('@N')`). Not a fork of phd-peter/ego-jev (0.5 Page API) and not a clone of browser-use/jev-ultrafast.
+Companion skill for **ego-lite 0.4.7.4** (global helpers: `useOrCreateTaskSpace`, `snapshot()`, `click('@N')`).
 
 ## Product claim
 
@@ -80,7 +80,7 @@ No naive mode, no screenshots, no RECORD_DIR.
 
 `SKILL.md` ≤ 120 lines. Description is **triggers only**. Recipe: when to use vs ego heredoc vs siteSkills vs visual vs handoff. Run command uses `<skill_dir>/scripts/run`. Result table. Forbidden list (no snapshot dump, no Chrome, no auto takeOver, no treating Jev DONE as success).
 
-`README.md`: install, ego 0.4.7.4 requirement, env, Docs example, credit phd-peter/ego-jev (opaque ids + validation) and TypeSafe; state this is **not** phd-peter/ego-jev and **not** jev-ultrafast.
+`README.md`: `npx skills add` first, ego 0.4.7.4 requirement, env, Docs example.
 
 `references/contract.md`: JSON in/out, wait policy, opaque keys.
 
