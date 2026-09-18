@@ -1,6 +1,6 @@
 ---
 name: egolite-jev
-description: Trigger when automating multi-step browser interactions where target buttons or links are uncertain, delegating bounded DOM navigation in ego-lite, selecting next actions via Jev fast decisions without snapshot dumps, or requiring verified page state checks before declaring browser task completion.
+description: Use alongside ego-browser whenever using Ego Lite for browsing, website inspection, or browser automation, including when the user does not mention Jev. Selects the appropriate direct or bounded-navigation workflow.
 ---
 
 # egolite-jev
@@ -8,6 +8,18 @@ description: Trigger when automating multi-step browser interactions where targe
 Delegate bounded DOM navigation to a fast candidate-selection loop inside ego-browser. Jev picks among opaque, pre-ranked candidate actions; the runner returns checkable evidence. `DONE` from Jev is never treated as success without independent verification.
 
 Requires: ego-lite 0.4.7.4 with `ego-browser` on PATH, and the `ego-browser` skill.
+
+## Default dispatch
+
+Load this skill alongside `ego-browser` before browser work; the user need not ask for Jev.
+For known targets, batch the justified clicks and targeted extraction in one heredoc.
+For uncertain multi-step DOM navigation, use `scripts/run` with a bounded goal and
+an independently checkable success condition instead of a snapshot/click loop.
+Before sending private page titles, URLs, or candidate labels to OpenRouter, obtain
+permission for that disclosure; otherwise keep inspection local and direct.
+Skill loading is agent guidance, not a browser interception hook. Report actual
+`steps[].via` and `timing.jev_ms`; a deterministic `href` result is not a Jev call.
+When authentication is unavailable, report the blocker once; do not claim Jev ran.
 
 ## Recipe: Choosing the Right Browser Tool
 
@@ -28,7 +40,7 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - `SUCCESS_MATCH` is verified against `(url + " " + title).toLowerCase()`.
 - Fill values come strictly from `JEV_FILL` (JSON map); missing values escalate to `need_llm`.
 - Budget is capped at 4 actions (max 8).
-- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh`. Do not paste the key into the transcript if that file exists.
+- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh` (legacy `~/.config/ego-verified-actions/env` is also supported). If no provider key is configured, the runner reads `~/.config/amp/secrets/openrouter-api-key` when available. Never print or commit credentials. Local secret files are not automatically available in cloud orbs.
 
 ## Result Handling
 

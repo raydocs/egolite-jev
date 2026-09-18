@@ -19,6 +19,10 @@ if [[ -z "${OPENROUTER_API_KEY:-}" && -n "$CONFIG" ]]; then
   set +a
 fi
 
+if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" && -r "${HOME}/.config/amp/secrets/openrouter-api-key" ]]; then
+  export OPENROUTER_API_KEY="$(cat "${HOME}/.config/amp/secrets/openrouter-api-key")"
+fi
+
 if [[ -z "${GOAL:-}" ]]; then
   echo 'Set GOAL and SUCCESS_MATCH, e.g. GOAL="Open the Docs page" SUCCESS_MATCH="/document"' >&2
   exit 2
