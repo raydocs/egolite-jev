@@ -1,0 +1,13 @@
+.DS_Store
+*.log
+.env
+.env.*
+tmp/
+node_modules/
+.ego-verified-runs/
+assets/
+_briefs/
+_xframes/
+_live60/
+_stitch/
+*.mp4

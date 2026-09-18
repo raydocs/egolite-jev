@@ -1,0 +1,12 @@
+main [ref=1]
+  button [ref=40, name="What is ego?"]
+  button [ref=41, name="How do I open Docs?"]
+  button [ref=42, name="Why use ego?"]
+  button [ref=43, name="Does it work offline?"]
+  button [ref=44, name="Can I automate tasks?"]
+  button [ref=45, name="Is it free?"]
+  button [ref=46, name="Where are the Docs?"]
+  button [ref=47, name="When can I start?"]
+  link [ref=70, name="Download", url=https://lite.ego.app/download]
+  link [ref=82, url=https://lite.ego.app/document/start, loc=href:/document/start]
+    text "Docs"

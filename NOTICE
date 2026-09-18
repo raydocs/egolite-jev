@@ -1,0 +1,9 @@
+ego-verified-actions is an independent companion skill for ego-lite 0.4.7.4.
+
+Opaque candidate keys, probability-distribution validation, and
+re-observation after each action follow the correctness discipline in
+https://github.com/phd-peter/ego-jev (MIT). No source was copied from
+that repository, from romaluev/jev-ego, or from browser-use/jev-ultrafast.
+
+TypeSafe Jev is a hosted model; this repo does not include model weights.
+ego lite / ego-browser is a separate product (Citro Labs).

@@ -1,0 +1,52 @@
+#!/bin/bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/ego-verified-actions.XXXXXX.json")"
+
+if [[ -z "${GOAL:-}" ]]; then
+  echo 'Set GOAL and SUCCESS_MATCH, e.g. GOAL="Open the Docs page" SUCCESS_MATCH="/document"' >&2
+  exit 2
+fi
+if [[ -z "${SUCCESS_MATCH:-}" ]]; then
+  echo 'Set SUCCESS_MATCH to a URL/title substring that proves the task' >&2
+  exit 2
+fi
+if [[ ! -f "$ROOT/lib.js" || ! -f "$ROOT/loop.js" ]]; then
+  echo "missing $ROOT/lib.js or $ROOT/loop.js" >&2
+  exit 2
+fi
+if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" ]]; then
+  echo 'Set OPENROUTER_API_KEY or TYPESAFE_API_KEY' >&2
+  exit 2
+fi
+
+PREAMBLE="$(python3 - "$ARGS_PATH" <<'PY'
+import json, os, sys
+path = sys.argv[1]
+payload = {
+    "goal": os.environ.get("GOAL", ""),
+    "url": os.environ.get("URL", ""),
+    "space": os.environ.get("SPACE", "verified-actions"),
+    "maxSteps": int(os.environ.get("MAX_STEPS") or 4),
+    "minConf": float(os.environ.get("JEV_MIN_CONFIDENCE") or 0.45),
+    "model": os.environ.get("JEV_MODEL") or "typesafe/jev-1.13",
+    "successMatch": os.environ.get("SUCCESS_MATCH") or "",
+    "fill": os.environ.get("JEV_FILL") or "",
+    "openrouterKey": os.environ.get("OPENROUTER_API_KEY") or "",
+    "typesafeKey": os.environ.get("TYPESAFE_API_KEY") or os.environ.get("TYPESAFE_AI_API_KEY") or "",
+}
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(payload, f)
+os.chmod(path, 0o600)
+print("const ARGS_PATH = " + json.dumps(path))
+PY
+)"
+
+cleanup() { rm -f "$ARGS_PATH"; }
+trap cleanup EXIT
+
+{
+  printf '%s\n' "$PREAMBLE"
+  cat "$ROOT/lib.js"
+  cat "$ROOT/loop.js"
+} | ego-browser nodejs
