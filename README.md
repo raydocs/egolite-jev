@@ -27,6 +27,12 @@ Pass if ok:true and page.url contains /document. Print elapsed_ms and steps[].vi
 
 Needs [ego lite](https://lite.ego.app/) with `ego-browser` on `PATH`. Get a key at [openrouter.ai/keys](https://openrouter.ai/keys).
 
+## Chrome vs Playwright vs ego-lite vs this skill
+
+![Comparison: Chrome, Playwright, ego-lite, ego-lite + Jev](docs/compare.png)
+
+Chrome / Playwright bars are **typical agent loops** (screenshot computer-use, or the model writing locators each turn), not a pre-written test. ego-lite numbers are **measured** on this machine for `Open the Docs page`.
+
 `ok: true` only if `SUCCESS_MATCH` appears in the final URL or title.
 
 ## Measured
