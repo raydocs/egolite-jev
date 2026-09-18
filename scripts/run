@@ -2,6 +2,13 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/ego-verified-actions.XXXXXX.json")"
+CONFIG="${HOME}/.config/ego-verified-actions/env"
+if [[ -z "${OPENROUTER_API_KEY:-}" && -f "$CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  set -a
+  source "$CONFIG"
+  set +a
+fi
 
 if [[ -z "${GOAL:-}" ]]; then
   echo 'Set GOAL and SUCCESS_MATCH, e.g. GOAL="Open the Docs page" SUCCESS_MATCH="/document"' >&2

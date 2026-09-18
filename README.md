@@ -1,29 +1,37 @@
 # ego-verified-actions
 
+Claude Code / Codex — one command, then it asks for your OpenRouter key:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/raydocs/ego-verified-actions/main/scripts/install.sh | bash
+```
+
+Or:
+
 ```bash
 npx skills add raydocs/ego-verified-actions
 ```
 
-Then:
+Then give this to the agent:
 
-```bash
-export OPENROUTER_API_KEY=sk-or-...
-
-GOAL='Open the Docs page' \
-  URL='https://lite.ego.app/' \
-  SUCCESS_MATCH='/document' \
-  ./scripts/run
+```
+Read the ego-verified-actions skill. Do not dump snapshotText() into chat.
+Run:
+GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' \
+  ~/.claude/skills/ego-verified-actions/scripts/run
+(Codex: ~/.codex/skills/ego-verified-actions/scripts/run)
+Pass if ok:true and page.url contains /document. Print elapsed_ms and steps[].via.
 ```
 
-Companion skill for [ego lite](https://lite.ego.app/). One bounded click/fill, checkable evidence. Does not dump `snapshotText()` into a coding model between clicks.
+`install.sh` links the skill into **Claude Code** (`~/.claude/skills`) and **Codex** (`~/.codex/skills`), then prompts for `OPENROUTER_API_KEY` and saves it to `~/.config/ego-verified-actions/env` (mode 600). `scripts/run` loads that file, so you do not export the key every session.
 
-Needs `ego-browser` on `PATH` and `OPENROUTER_API_KEY` (Jev via `typesafe/jev-1.13`) or `TYPESAFE_API_KEY`.
+Needs [ego lite](https://lite.ego.app/) with `ego-browser` on `PATH`. Get a key at [openrouter.ai/keys](https://openrouter.ai/keys).
 
 `ok: true` only if `SUCCESS_MATCH` appears in the final URL or title.
 
 ## Measured
 
-Same machine, `Open the Docs page` on lite.ego.app:
+`Open the Docs page` on lite.ego.app:
 
 | | Wall |
 |---|---|
@@ -40,9 +48,7 @@ If the top control’s `href` already contains `SUCCESS_MATCH`, Jev is skipped (
   "ok": true,
   "reason": "done",
   "elapsed_ms": 4131,
-  "page": {
-    "url": "https://lite.ego.app/document/en/docs/quick-start"
-  }
+  "page": { "url": "https://lite.ego.app/document/en/docs/quick-start" }
 }
 ```
 
@@ -53,11 +59,7 @@ If the top control’s `href` already contains `SUCCESS_MATCH`, Jev is skipped (
 | `dialog` | Hand off. |
 | `budget_exhausted` | Do not rerun unchanged. |
 
-## Env
-
-`GOAL` and `SUCCESS_MATCH` required. Optional: `URL`, `JEV_FILL` (JSON fill map), `MAX_STEPS` (default 4), `SPACE`.
-
-Copy `SKILL.md` + `scripts/` + `references/` into any agent skills dir if you skip `npx`.
+Optional env: `URL`, `JEV_FILL`, `MAX_STEPS`, `SPACE`. `GOAL` and `SUCCESS_MATCH` required.
 
 ```bash
 node --test tests

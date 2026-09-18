@@ -28,7 +28,7 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - `SUCCESS_MATCH` is verified against `(url + " " + title).toLowerCase()`.
 - Fill values come strictly from `JEV_FILL` (JSON map); missing values escalate to `need_llm`.
 - Budget is capped at 4 actions (max 8).
-- Requires `OPENROUTER_API_KEY` or `TYPESAFE_API_KEY`.
+- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/ego-verified-actions/env` from `scripts/install.sh`. Do not paste the key into the transcript if that file exists.
 
 ## Result Handling
 
