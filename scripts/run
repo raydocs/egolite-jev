@@ -24,7 +24,14 @@ if [[ -z "${OPENROUTER_API_KEY:-}" && -n "$CONFIG" ]]; then
   set +a
 fi
 
-if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" && -r "${HOME}/.config/amp/secrets/openrouter-api-key" ]]; then
+# TypeSafe's own endpoint answers in ~90 ms against ~250 ms through OpenRouter (2026-11-09), so a
+# TypeSafe key is used first. Only the key line is read from ~/.config/typesafe/env, never sourced.
+if [[ -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" && -r "${HOME}/.config/typesafe/env" ]]; then
+  TYPESAFE_API_KEY="$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}TYPESAFE_API_KEY=//p' "${HOME}/.config/typesafe/env" | head -n 1 | sed "s/^[\"']//; s/[\"']\$//")"
+  if [[ -n "$TYPESAFE_API_KEY" ]]; then export TYPESAFE_API_KEY; else unset TYPESAFE_API_KEY; fi
+fi
+
+if [[ -z "${OPENROUTER_API_KEY:-}" && ( "${JEV_PROVIDER:-}" == "openrouter" || ( -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" ) ) && -r "${HOME}/.config/amp/secrets/openrouter-api-key" ]]; then
   export OPENROUTER_API_KEY="$(cat "${HOME}/.config/amp/secrets/openrouter-api-key")"
 fi
 
@@ -59,6 +66,7 @@ payload = {
     "fill": os.environ.get("JEV_FILL") or "",
     "openrouterKey": os.environ.get("OPENROUTER_API_KEY") or "",
     "typesafeKey": os.environ.get("TYPESAFE_API_KEY") or os.environ.get("TYPESAFE_AI_API_KEY") or "",
+    "provider": os.environ.get("JEV_PROVIDER") or "",
 }
 with open(path, "w", encoding="utf-8") as f:
     json.dump(payload, f)

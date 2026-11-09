@@ -173,6 +173,7 @@ emit({
   elapsed_ms: Date.now() - startedAt,
   timing,
   space: { id: task.spaceId, name: SPACE, page: page.label },
+  provider: auth.provider,
   page: { url: finalPage.url, title: finalPage.title },
   steps: log,
   detail: stop.detail,
@@ -206,24 +207,27 @@ function parseFill(raw) {
   }
 }
 
+// TypeSafe first (lower latency); JEV_PROVIDER=openrouter forces OpenRouter when both keys exist.
 function jevAuth(args) {
+  if (args.typesafeKey && args.provider !== 'openrouter') {
+    return {
+      provider: 'typesafe',
+      url: 'https://api.typesafe.ai/v1/systemone',
+      headers: {
+        Authorization: 'Bearer ' + args.typesafeKey,
+        'Content-Type': 'application/json',
+      },
+    }
+  }
   if (args.openrouterKey) {
     return {
+      provider: 'openrouter',
       url: 'https://openrouter.ai/api/alpha/decisions',
       headers: {
         Authorization: 'Bearer ' + args.openrouterKey,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://github.com/raydocs/egolite-jev',
         'X-Title': 'egolite-jev',
-      },
-    }
-  }
-  if (args.typesafeKey) {
-    return {
-      url: 'https://api.typesafe.ai/v1/systemone',
-      headers: {
-        Authorization: 'Bearer ' + args.typesafeKey,
-        'Content-Type': 'application/json',
       },
     }
   }
@@ -272,7 +276,7 @@ async function jevPick(auth, model, page, packed) {
   for (const action of packed.actions) criteria[action.key] = describeAction(action)
   const t0 = Date.now()
   const json = await postJson(auth.url, auth.headers, {
-    model,
+    model: auth.provider === 'typesafe' ? typesafeModel(model) : model,
     state: {
       subgoal: GOAL,
       page: { url: page.url, title: page.title },

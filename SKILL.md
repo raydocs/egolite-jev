@@ -41,7 +41,7 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - Budget is capped at 4 actions (max 8).
 - Candidates: whole-page snapshot plus DOM `a[href]` links, one per destination. A cross-document link is opened by its href; buttons and in-page anchors are clicked.
 - Jev never acts alone on money, deletion or sign-out controls (`Buy`, `Delete`, `Sign out`, `删除`, `支付`, …): the run stops with `need_llm` and `detail: guarded action: …`.
-- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh` (legacy `~/.config/ego-verified-actions/env` is also supported). If no provider key is configured, the runner reads `~/.config/amp/secrets/openrouter-api-key` when available. Never print or commit credentials. Local secret files are not automatically available in cloud orbs.
+- Auth: `TYPESAFE_API_KEY` (environment, or the `TYPESAFE_API_KEY=` line of `~/.config/typesafe/env`) is used first: TypeSafe's own endpoint answered in ~90 ms vs ~250 ms through OpenRouter (2026-11-09). Otherwise `OPENROUTER_API_KEY` from the environment, `~/.config/egolite-jev/env` (`scripts/install.sh`; legacy `~/.config/ego-verified-actions/env`), or `~/.config/amp/secrets/openrouter-api-key`. `JEV_PROVIDER=openrouter` forces OpenRouter. Output reports `provider`. Never print or commit credentials. Local secret files are not automatically available in cloud orbs.
 
 ## Result Handling
 
