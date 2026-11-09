@@ -33,6 +33,24 @@ test('runner prints only the result JSON on stdout even when the browser logs', 
   }
 });
 
+test('runner survives a leftover temp file from an earlier run', () => {
+  const home = mkdtempSync(join(tmpdir(), 'jev-tmp-test-'));
+  try {
+    mkdirSync(join(home, 'bin'));
+    writeFileSync(join(home, 'bin/ego-browser'), fakeBrowser('true'), { mode: 0o700 });
+    // The literal name the old ".XXXXXX.json" template produced on macOS.
+    writeFileSync(join(home, 'egolite-jev.XXXXXX.json'), '');
+    const env = { ...process.env, HOME: home, TMPDIR: home, PATH: `${home}/bin:${process.env.PATH}`,
+      GOAL: 'Public navigation test', SUCCESS_MATCH: '/document', OPENROUTER_API_KEY: 'test-key' };
+    const run = () => spawnSync('bash', [join(__dirname, '../scripts/run')], { env, encoding: 'utf8' });
+    spawnSync('bash', [join(__dirname, '../scripts/run')], { env: { ...env, GOAL: '' }, encoding: 'utf8' });
+    const result = run();
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test('runner reads the Amp local OpenRouter secret without overriding explicit configuration', () => {
   const home = mkdtempSync(join(tmpdir(), 'jev-auth-test-'));
   try {

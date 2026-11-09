@@ -111,13 +111,27 @@ for (let step = 1; step <= MAX_STEPS; step++) {
   t = Date.now()
   let receipt
   try {
-    receipt = await page.click('@' + action.ref, { label: clickLabel(action.name) })
+    // 1.5 s instead of the 3 s default: a hidden duplicate falls back to its href sooner.
+    receipt = await page.click('@' + action.ref, { label: clickLabel(action.name), timeout: 1500 })
   } catch (err) {
-    // e.g. a hidden sidebar link whose click is intercepted: report, do not crash without JSON.
+    // Full-page snapshots include hidden duplicates (collapsed sidebars, mobile menus) whose
+    // click is intercepted or off-viewport. A link's own http(s) href is the same destination.
+    const message = String(err && err.message || err).slice(0, 200)
+    let opened = false
+    if (/^https?:\/\//i.test(action.href || '')) {
+      try {
+        await page.goto(action.href, { timeout: 8000 })
+        opened = true
+      } catch {}
+    }
     timing.click_ms += Date.now() - t
-    log.push({ ...entry, acted: 'click_failed' })
-    stop = { reason: 'need_llm', detail: 'click failed: ' + String(err && err.message || err).slice(0, 200) }
-    break
+    if (!opened) {
+      log.push({ ...entry, acted: 'click_failed' })
+      stop = { reason: 'need_llm', detail: 'click failed: ' + message }
+      break
+    }
+    log.push({ ...entry, acted: 'goto_href', detail: entry.detail + ' (click failed: ' + message.slice(0, 80) + ')' })
+    continue
   }
   timing.click_ms += Date.now() - t
   log.push({ ...entry, acted: 'click' })

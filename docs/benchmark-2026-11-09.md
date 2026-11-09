@@ -16,3 +16,31 @@ Coding-model I/O per Jev run: ~250 chars of command + 0.7–1.8 kB JSON; per pla
 
 Result: Jev 1.14 reached the target in 3 of 11 runs (1.13: 1 of 4); plain heredocs in 4 of 4.
 Every Jev failure returns `need_llm`, after which the coding model does the plain work anyway.
+
+## Second pass (same day, after the fixes below)
+
+Fixes: a failed click on a link falls back to `page.goto(href)` (hidden duplicates in the full-page
+snapshot made correct Jev picks fail with "intercepts pointer events" / "not visible in the viewport"),
+click timeout 1.5 s, and the BSD `mktemp` template fix. Four more tasks start at https://lite.ego.app/,
+where the target link is not on the start page, so Jev must pick step 1 (always "Docs").
+
+| Task | Jev, minConf 0.45 | Jev, minConf 0.3 | Plain heredoc |
+|---|---|---|---|
+| GitHub → branch protection rule | ok 6.4 s (jev, jev→goto, href) | ok 7.1 s | ok, 2 rounds, wall 10.2 s |
+| Python → asyncio-task | ok 9.2 s (jev, jev→goto, href) | ok 9.6 s | ok, 2 rounds, wall 21.8 s |
+| Cloudflare → cron-triggers | ok 6.6 s; 4.9 s with 1.5 s click timeout (href→goto) | ok 6.8 s | ok, 1 round, 1.4 s |
+| VS Code → settings-sync | fail (scroll, escalate) | fail | ok, 1 round, 1.4 s |
+| ego lite → Space | ok 4.3 s (jev 0.46, href) | ok 5.0 s | ok, 2 rounds, ~13 s |
+| ego lite → Windows quick start | fail (Docs at 0.34) | fail (escalate on Docs page) | ok, 2 rounds, ~13 s |
+| ego lite → Claude Code guide | fail (Docs at 0.23) | fail (0.22) | ok, 2 rounds, ~13 s |
+| ego lite → ego-browser page | fail (Docs at 0.35) | ok 3.1 s | ok, 2 rounds, ~13 s |
+
+Plain ego lite rounds: 0.8 s browser, ~11 s coding-model turn, 1.2–1.7 s browser.
+Earlier, at minConf 0.45, Jev picked "Docs" correctly in 8 of 8 ego lite runs but with confidence
+0.21–0.44, so the runner refused all 8.
+
+Result: Jev succeeds on 4 of 8 tasks at 0.45 (5 of 8 at 0.3); plain on 8 of 8. Jev spends
+~300 ms per decision; the rest is browser time. A Jev success on a 2–3 hop task (3–9 s) beats a
+two-round plain loop (10–22 s) because it skips coding-model turns; a Jev failure adds 1–3 s before
+the plain loop. When the target link is on the start page, plain takes one round (~1.4 s) and Jev
+adds nothing.

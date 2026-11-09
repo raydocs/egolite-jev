@@ -1,8 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev.XXXXXX.json")"
-RESULT_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-result.XXXXXX.json")"
+# BSD mktemp only randomizes trailing X's: a ".json" suffix makes the name fixed,
+# so one leftover file would break every later run.
+ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-args.XXXXXX")"
+RESULT_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-result.XXXXXX")"
+cleanup() { rm -f "$ARGS_PATH" "$RESULT_PATH"; }
+trap cleanup EXIT
 CONFIG=""
 for candidate in \
   "${HOME}/.config/egolite-jev/env" \
@@ -63,9 +67,6 @@ print("const ARGS_PATH = " + json.dumps(path))
 print("const RESULT_PATH = " + json.dumps(sys.argv[2]))
 PY
 )"
-
-cleanup() { rm -f "$ARGS_PATH" "$RESULT_PATH"; }
-trap cleanup EXIT
 
 # ego-browser 0.6 sends all script output to stderr, so the result JSON travels
 # through RESULT_PATH and is the only thing printed on stdout.
