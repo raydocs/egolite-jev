@@ -44,3 +44,33 @@ Result: Jev succeeds on 4 of 8 tasks at 0.45 (5 of 8 at 0.3); plain on 8 of 8. J
 two-round plain loop (10–22 s) because it skips coding-model turns; a Jev failure adds 1–3 s before
 the plain loop. When the target link is on the start page, plain takes one round (~1.4 s) and Jev
 adds nothing.
+
+## Third pass: candidate-list fixes
+
+Diagnosis (probing the decisions API with the runner's own candidate lists):
+- Duplicates split the vote: on lite.ego.app "Docs", "Docs" and "Read the docs" share one URL; Jev gave
+  them 0.29 + 0.26 + 0.16 = 0.71, but the top single key had 0.29 < 0.45.
+- Unnamed anchors were dropped: the Windows link's text sits two levels below the anchor, and the parser only
+  read a direct `text` child.
+- Ranking matched the site name: every href contains `lite.ego.app`, so "ego lite" in a goal scored every link
+  and tweet links filled the 16 slots.
+- Collapsed navigation is absent from the accessibility snapshot (VS Code `settings-sync`).
+
+Fixes: one candidate per destination (href without hash); unnamed controls take the first named node in their
+subtree, else the last path segment; score name + href path only; `find`/`guide`/`documentation` are stopwords;
+an href containing SUCCESS_MATCH always makes the list; DOM `a[href]` links missing from the snapshot are added
+without a ref and opened by href.
+
+| Task | run 1 | run 2 |
+|---|---|---|
+| GitHub → branch protection rule | ok 1.6 s (jev 0.50, href) | ok 1.4 s (jev 0.46, href) |
+| Python → asyncio-task | ok 4.9 s (jev 0.83, jev 0.97, href) | ok 4.7 s |
+| Cloudflare → cron-triggers | ok 3.7 s (href) | ok 3.8 s |
+| VS Code → settings-sync | ok 7.6 s (DOM href) | ok 3.1 s |
+| ego lite → Space | ok 3.1 s (jev 0.94 "Docs", href) | ok 2.9 s |
+| ego lite → Windows quick start | ok 3.0 s (jev 0.93, href) | ok 3.0 s |
+| ego lite → Claude Code guide | fail: jev 0.46 picks "vs Claude Chrome extension" | fail (same) |
+| ego lite → ego-browser page | ok 4.3 s (jev 0.79, href) | ok 4.7 s |
+
+14 of 16 runs succeed (was 4 of 8), all at the default minConf 0.45. Plain heredocs: 8 of 8, 1.4 s when the
+link is on the start page, 10–22 s when they need a second round.

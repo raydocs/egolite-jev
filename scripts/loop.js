@@ -109,6 +109,21 @@ for (let step = 1; step <= MAX_STEPS; step++) {
   const beforeTabs = await tabIdSet()
   const prevUrl = info.url
   t = Date.now()
+  if (!action.ref) {
+    // A DOM-only link (absent from the accessibility snapshot): open its href.
+    try {
+      await page.goto(action.href, { timeout: 8000 })
+    } catch (err) {
+      timing.click_ms += Date.now() - t
+      log.push({ ...entry, acted: 'goto_failed' })
+      stop = { reason: 'need_llm', detail: 'goto failed: ' + String(err && err.message || err).slice(0, 200) }
+      break
+    }
+    timing.click_ms += Date.now() - t
+    log.push({ ...entry, acted: 'goto_href' })
+    continue
+  }
+
   let receipt
   try {
     // 1.5 s instead of the 3 s default: a hidden duplicate falls back to its href sooner.
@@ -220,7 +235,10 @@ async function currentCandidates() {
   // Whole document, as the 0.4 global snapshot() returned; page.snapshot() defaults to the viewport.
   const snap = await page.snapshot({ scope: 'full_page' })
   const content = typeof snap === 'string' ? snap : String(snap && snap.content || '')
-  return buildCandidates(content, GOAL)
+  const extraLinks = await page.evaluate(() => [...document.querySelectorAll('a[href]')].slice(0, 600)
+    .map((a) => ({ name: (a.textContent || a.getAttribute('aria-label') || '').trim().slice(0, 80), href: a.href })))
+    .catch(() => [])
+  return buildCandidates(content, GOAL, { successMatch: SUCCESS_MATCH, extraLinks })
 }
 
 async function waitUntilUrl() {

@@ -115,3 +115,33 @@ test('deterministicAction takes the top ranked click whose href matches success'
   assert.equal(call('deterministicAction', packed, '/nope'), null);
   assert.equal(call('hrefMatchesSuccess', 'https://lite.ego.app/DOCUMENT/x', '/document'), true);
 });
+
+test('names an unnamed anchor from text nested deeper in its own subtree', () => {
+  const lines = call('parseSnapshot', 'anchor [ref=16, url=https://x.test/docs/windows/quick-start]\n  container\n    text "Windows"\nanchor [ref=17, url=https://x.test/b]\nanchor [ref=18, url=https://x.test/c]\n  text "C"');
+  assert.equal(lines.find(line => line.ref === '16').name, 'Windows');
+  assert.equal(lines.find(line => line.ref === '17').name, '');
+});
+
+test('keeps one candidate per destination so duplicates do not split the vote', () => {
+  const { actions } = call('buildCandidates', [
+    'anchor [ref=1, url=https://lite.ego.app/document/en/docs/quick-start]', '  text "Docs"',
+    'anchor [ref=2, url=https://lite.ego.app/document/en/docs/quick-start]', '  text "Read the docs"',
+    'anchor [ref=3, url=https://lite.ego.app/document/en/docs/quick-start#install]', '  text "Install"',
+  ].join('\n'), 'Find the Windows quick start guide');
+  assert.equal(actions.filter(a => a.op === 'CLICK').length, 1);
+});
+
+test('always lists an href containing SUCCESS_MATCH, even below the top 16', () => {
+  const noise = Array.from({ length: 20 }, (_, i) => `anchor [ref=${100 + i}, name="Ego lite quick start ${i}", url=https://lite.ego.app/q${i}]`);
+  const content = noise.concat(['anchor [ref=7, name="Space", url=https://lite.ego.app/document/en/docs/space]']).join('\n');
+  const packed = call('buildCandidates', content, 'Find the ego lite quick start page about Spaces', { successMatch: '/docs/space' });
+  assert.equal(call('deterministicAction', packed, '/docs/space').ref, '7');
+});
+
+test('adds DOM-only links the accessibility snapshot omits, without a ref', () => {
+  const { actions } = call('buildCandidates', 'anchor [ref=1, name="Editor", url=https://code.test/docs/editor]', 'Find the Settings Sync documentation', {
+    extraLinks: [{ name: 'Editor', href: 'https://code.test/docs/editor' }, { name: 'Settings Sync', href: 'https://code.test/docs/configure/settings-sync' }, { name: 'Mail', href: 'mailto:a@b.test' }],
+  });
+  const clicks = actions.filter(a => a.op === 'CLICK');
+  assert.deepEqual(Array.from(clicks, a => [a.name, a.ref]), [['Settings Sync', ''], ['Editor', '1']]);
+});
