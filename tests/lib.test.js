@@ -145,3 +145,18 @@ test('adds DOM-only links the accessibility snapshot omits, without a ref', () =
   const clicks = actions.filter(a => a.op === 'CLICK');
   assert.deepEqual(Array.from(clicks, a => [a.name, a.ref]), [['Settings Sync', ''], ['Editor', '1']]);
 });
+
+test('opens cross-document links by href but still clicks buttons and in-page anchors', () => {
+  const link = { op: 'CLICK', role: 'anchor', href: 'https://x.test/docs/space' };
+  assert.equal(call('opensByHref', link, 'https://x.test/'), true);
+  assert.equal(call('opensByHref', { ...link, href: 'https://x.test/#install' }, 'https://x.test/'), false);
+  assert.equal(call('opensByHref', { ...link, role: 'button' }, 'https://x.test/'), false);
+  assert.equal(call('opensByHref', { ...link, href: 'javascript:void(0)' }, 'https://x.test/'), false);
+});
+
+test('guards money, deletion and sign-out controls from autonomous Jev clicks', () => {
+  for (const name of ['Buy now', 'Delete repository', 'Sign out', '退出登录', 'Proceed to checkout']) {
+    assert.equal(call('guardedAction', { name }), true, name);
+  }
+  for (const name of ['Docs', 'Branch protection rule', 'Settings Sync']) assert.equal(call('guardedAction', { name }), false, name);
+});

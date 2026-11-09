@@ -57,7 +57,7 @@ The runner produces a single JSON object on stdout upon termination:
 
 ### Reason Codes
 - `done`: `verifiedDone` passed. Task achieved.
-- `need_llm`: Model confidence was below `minConf` (0.45), Jev picked `escalate_1`, choice validation failed, or a required `FILL` value was missing from `JEV_FILL`.
+- `need_llm`: Model confidence was below `minConf` (0.45), Jev picked `escalate_1`, choice validation failed, Jev picked a guarded control (money, deletion, sign-out), a click or href navigation failed, or a required `FILL` value was missing from `JEV_FILL`.
 - `dialog`: Native browser dialog (`pageInfo().dialog`) was encountered.
 - `budget_exhausted`: Maximum steps reached without achieving `verifiedDone`.
 

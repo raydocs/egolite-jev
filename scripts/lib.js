@@ -32,6 +32,21 @@ function parseSnapshot(content) {
   return lines;
 }
 
+// A plain link to another document: opening its href reaches the same destination as the
+// click without waiting on it, or on a hidden duplicate's failed click. Buttons and in-page
+// (#hash) links are still clicked.
+function opensByHref(action, currentUrl) {
+  if (!action || action.op !== 'CLICK' || !/^https?:\/\//i.test(action.href || '')) return false;
+  if (!/^(anchor|link)$/i.test(action.role || '')) return false;
+  return destinationKey(action.href) !== destinationKey(currentUrl || '');
+}
+
+// Controls Jev may not act on by itself: money, deletion, sign-out. The caller decides.
+function guardedAction(action) {
+  const text = String(action && action.name || '');
+  return /\b(buy|pay|purchase|checkout|check out|place order|delete|remove|unsubscribe|sign out|log out|logout|cancel subscription|transfer)\b|删除|支付|付款|购买|下单|退出登录|注销/i.test(text);
+}
+
 function hrefPath(href) {
   // Origin is shared by most links on a page; scoring it makes every link match the site name.
   return String(href || '').replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');

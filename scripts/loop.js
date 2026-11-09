@@ -18,6 +18,7 @@ const auth = jevAuth(ARGS)
 if (!auth) fail('Set OPENROUTER_API_KEY or TYPESAFE_API_KEY')
 
 const log = []
+const history = []
 let t = Date.now()
 const task = await taskSpace(SPACE)
 const managed = await task.pages()
@@ -88,6 +89,13 @@ for (let step = 1; step <= MAX_STEPS; step++) {
     break
   }
 
+  if (via === 'jev' && guardedAction(action)) {
+    log.push({ ...entry, acted: 'guarded' })
+    stop = { reason: 'need_llm', detail: 'guarded action: ' + action.name }
+    break
+  }
+  if (action.op !== 'ESCALATE') history.push(describeAction(action))
+
   if (action.op === 'FILL') {
     const value = fillValue(action.name)
     if (value == null) {
@@ -109,8 +117,8 @@ for (let step = 1; step <= MAX_STEPS; step++) {
   const beforeTabs = await tabIdSet()
   const prevUrl = info.url
   t = Date.now()
-  if (!action.ref) {
-    // A DOM-only link (absent from the accessibility snapshot): open its href.
+  if (!action.ref || opensByHref(action, info.url)) {
+    // A DOM-only link (absent from the accessibility snapshot) or a plain cross-document link.
     try {
       await page.goto(action.href, { timeout: 8000 })
     } catch (err) {
@@ -268,6 +276,7 @@ async function jevPick(auth, model, page, packed) {
     state: {
       subgoal: GOAL,
       page: { url: page.url, title: page.title },
+      history: history.slice(-8),
     },
     questions: {
       next_action: {

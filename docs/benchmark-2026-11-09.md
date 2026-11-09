@@ -92,3 +92,13 @@ section in the criteria, an instruction to prefer hub sections, and backtracking
 None dedupes by destination or ranks by the goal; all target general agent loops (forms, search), and none
 reports a head-to-head against plain agent heredocs on navigation. Ideas worth a later test here: per-step
 history in `state`, a stale/visibility re-check before clicks, and a danger-word block before acting.
+
+## Fourth pass: open links by href, step history, guarded controls
+
+Click waits were 60–70 % of each run and Jev decisions about 10 %. Cross-document `http(s)` links are now
+opened with `page.goto(href)` (buttons and `#hash` links are still clicked), `state.history` carries the
+last 8 actions, and Jev may not act alone on money, deletion or sign-out controls.
+
+Same 8 tasks × 2 runs: 14/16 ok (unchanged; the Claude Code guide still fails). Median successful run
+3.4 s → 1.7 s, mean 3.7 s → 2.0 s. Multi-hop tasks now finish in 1.3–1.9 s, against 10–22 s for a plain
+heredoc loop that needs a second round; one-round plain heredocs remain ~1.4 s.

@@ -39,6 +39,8 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - `SUCCESS_MATCH` is verified against `(url + " " + title).toLowerCase()`.
 - Fill values come strictly from `JEV_FILL` (JSON map); missing values escalate to `need_llm`.
 - Budget is capped at 4 actions (max 8).
+- Candidates: whole-page snapshot plus DOM `a[href]` links, one per destination. A cross-document link is opened by its href; buttons and in-page anchors are clicked.
+- Jev never acts alone on money, deletion or sign-out controls (`Buy`, `Delete`, `Sign out`, `删除`, `支付`, …): the run stops with `need_llm` and `detail: guarded action: …`.
 - Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh` (legacy `~/.config/ego-verified-actions/env` is also supported). If no provider key is configured, the runner reads `~/.config/amp/secrets/openrouter-api-key` when available. Never print or commit credentials. Local secret files are not automatically available in cloud orbs.
 
 ## Result Handling
@@ -48,7 +50,7 @@ The runner outputs JSON stdout: `{ok, reason, goal, elapsed_ms, space, page, ste
 | `reason` | Description | Action to Take |
 |---|---|---|
 | `done` | Target reached; `SUCCESS_MATCH` verified in URL or title. | `ok: true`. Task complete. Extract data with `js()` if needed. |
-| `need_llm` | Choice validation failed, confidence < 0.45, `escalate_1` chosen, or fill missing. | Inspect page with one targeted snapshot, then use heredoc or stop. Do not loop blindly. |
+| `need_llm` | Choice validation failed, confidence < 0.45, `escalate_1` chosen, a guarded control picked, a click/goto failed, or fill missing. `detail` says which. | Inspect page with one targeted snapshot, then use heredoc or stop. Do not loop blindly. |
 | `dialog` | Native dialog (`pageInfo().dialog`) appeared. | Handle dialog via CDP or hand off to user. |
 | `budget_exhausted` | Action budget reached without matching `SUCCESS_MATCH`. | Inspect `steps`. Refine goal or hand off; do not re-run unchanged. |
 

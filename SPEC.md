@@ -62,6 +62,8 @@ Wrapper `scripts/run`:
    - One Jev Choice `next_action` whose criteria are `describeAction` strings keyed by opaque ids **plus** `escalate_1`
    - `validateChoice`; fail → `need_llm`
    - `escalate_1` or confidence < 0.45 → `need_llm`
+   - Jev pick matching `guardedAction` (money, deletion, sign-out) → `need_llm`
+   - cross-document `http(s)` link → `page.goto(href)` (`opensByHref`); state carries the last 8 actions as `history`
    - FILL: value from `JEV_FILL` only; missing → `need_llm` (do not call a text LLM)
    - CLICK: record **set of tab targetIds**, `click('@'+ref)`, then:
      - if a **new** targetId appeared → `switchTab` that id, `waitForLoad` only then
