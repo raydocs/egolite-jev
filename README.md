@@ -119,6 +119,17 @@ GOAL='Open the Docs page' \
 
 `ok` is true only for `done`.
 
+## Search
+
+```bash
+QUERY='saas pricing page ui examples' K=3 ./scripts/search
+```
+
+DuckDuckGo results, one Jev ranking call (~150 ms) and the top `K` pages (default 3, max 5) opened in parallel, in
+one process: 3.6–4.9 s for three pages, against ~55 s for a search-then-open heredoc loop. It prints
+`{ok, ranked_by, timing, results, pages}`; without a key it keeps the search order. The query goes to DuckDuckGo and
+result titles to Jev, so keep private names out of it.
+
 ---
 
 ## Tests
