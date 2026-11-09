@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-1F6FEB?style=flat-square)](LICENSE)
 [![ego lite](https://img.shields.io/badge/ego_lite-0.6.2.9-111111?style=flat-square)](https://lite.ego.app/)
-[![OpenRouter](https://img.shields.io/badge/Jev-OpenRouter-6B4EFF?style=flat-square)](https://openrouter.ai/keys)
+[![TypeSafe Jev](https://img.shields.io/badge/Jev-TypeSafe-6B4EFF?style=flat-square)](https://docs.typesafe.ai)
 
 [ego lite](https://lite.ego.app/) 的配套 skill。编码 agent 给出 **目标** 和 **成功条件**，runner 在同一个 `ego-browser` 进程里列控件、点击，并返回 JSON。成功与否看最终 URL / 标题是否包含你给的子串，而不是模型说「做完了」。
 
@@ -18,7 +18,7 @@
 curl -fsSL https://raw.githubusercontent.com/raydocs/egolite-jev/main/scripts/install.sh | bash
 ```
 
-脚本会把 skill 链到 `~/.claude/skills` 和 `~/.codex/skills`，然后询问 [OpenRouter](https://openrouter.ai/keys) 的 key（`sk-or-…`）。key 保存在 `~/.config/egolite-jev/env`（权限 600）。之后 `scripts/run` 自动读取，不必每轮 `export`。
+脚本会把 skill 链到 `~/.claude/skills` 和 `~/.codex/skills`，然后询问 Jev 的 key：优先用 [TypeSafe](https://docs.typesafe.ai) 官方 key（每次决策约 90 ms），也可以用 [OpenRouter](https://openrouter.ai/keys) 的 key（`sk-or-…`，约 250 ms）。两者都有时 runner 走 TypeSafe；设 `JEV_PROVIDER=openrouter` 可强制走 OpenRouter。key 保存在 `~/.config/egolite-jev/env`（权限 600）。之后 `scripts/run` 自动读取，不必每轮 `export`。
 
 ```bash
 npx skills add raydocs/egolite-jev
@@ -129,4 +129,4 @@ node --test tests
 
 ## 许可
 
-[MIT](LICENSE)。浏览器：[ego lite](https://lite.ego.app/)。决策：[TypeSafe Jev](https://docs.typesafe.ai)，经 OpenRouter。
+[MIT](LICENSE)。浏览器：[ego lite](https://lite.ego.app/)。决策：[TypeSafe Jev](https://docs.typesafe.ai)，直连或经 OpenRouter。

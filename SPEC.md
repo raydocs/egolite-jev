@@ -74,7 +74,7 @@ Wrapper `scripts/run`:
    - `ok` true **only** if `verifiedDone` on the final page
    - Jev saying done/escalate is not `ok`
 
-Jev endpoint: OpenRouter `https://openrouter.ai/api/alpha/decisions` model `typesafe/jev-1.14`, else TypeSafe `https://api.typesafe.ai/v1/systemone`.
+Jev endpoint: TypeSafe `https://api.typesafe.ai/v1/systemone` model `jev-1.14.0` when a TypeSafe key exists (lower latency), else OpenRouter `https://openrouter.ai/api/alpha/decisions` model `typesafe/jev-1.14`; `JEV_PROVIDER=openrouter` forces OpenRouter.
 
 No naive mode, no screenshots, no RECORD_DIR.
 

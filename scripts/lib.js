@@ -47,6 +47,12 @@ function guardedAction(action) {
   return /\b(buy|pay|purchase|checkout|check out|place order|delete|remove|unsubscribe|sign out|log out|logout|cancel subscription|transfer)\b|删除|支付|付款|购买|下单|退出登录|注销/i.test(text);
 }
 
+// OpenRouter names Jev "typesafe/jev-1.14"; TypeSafe's own API calls it "jev-1.14.0".
+function typesafeModel(slug) {
+  const name = String(slug || '').replace(/^typesafe\//, '');
+  return /^jev-\d+\.\d+$/.test(name) ? name + '.0' : name;
+}
+
 function hrefPath(href) {
   // Origin is shared by most links on a page; scoring it makes every link match the site name.
   return String(href || '').replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');

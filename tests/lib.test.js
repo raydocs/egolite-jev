@@ -160,3 +160,9 @@ test('guards money, deletion and sign-out controls from autonomous Jev clicks', 
   }
   for (const name of ['Docs', 'Branch protection rule', 'Settings Sync']) assert.equal(call('guardedAction', { name }), false, name);
 });
+
+test('maps the OpenRouter Jev slug to the TypeSafe model name', () => {
+  assert.equal(call('typesafeModel', 'typesafe/jev-1.14'), 'jev-1.14.0');
+  assert.equal(call('typesafeModel', 'jev-1.14.0'), 'jev-1.14.0');
+  assert.equal(call('typesafeModel', 'typesafe/jev-latest'), 'jev-latest');
+});

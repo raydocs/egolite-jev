@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require('node:fs');
+const { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
@@ -46,6 +46,25 @@ test('runner survives a leftover temp file from an earlier run', () => {
     spawnSync('bash', [join(__dirname, '../scripts/run')], { env: { ...env, GOAL: '' }, encoding: 'utf8' });
     const result = run();
     assert.equal(result.status, 0, result.stderr);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('runner reads only the key line of ~/.config/typesafe/env', () => {
+  const home = mkdtempSync(join(tmpdir(), 'jev-typesafe-test-'));
+  try {
+    mkdirSync(join(home, '.config/typesafe'), { recursive: true });
+    writeFileSync(join(home, '.config/typesafe/env'), 'echo should-not-run > "$HOME/ran"\nTYPESAFE_API_KEY="ts-test"\n');
+    mkdirSync(join(home, 'bin'));
+    writeFileSync(join(home, 'bin/ego-browser'), fakeBrowser('[ "$TYPESAFE_API_KEY" = "ts-test" ] || exit 1'), { mode: 0o700 });
+    const result = spawnSync('bash', [join(__dirname, '../scripts/run')], {
+      env: { ...process.env, HOME: home, TMPDIR: home, PATH: `${home}/bin:${process.env.PATH}`,
+        GOAL: 'Public navigation test', SUCCESS_MATCH: '/document', OPENROUTER_API_KEY: '', TYPESAFE_API_KEY: '', TYPESAFE_AI_API_KEY: '' },
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(existsSync(join(home, 'ran')), false);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

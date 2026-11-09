@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-1F6FEB?style=flat-square)](LICENSE)
 [![ego lite](https://img.shields.io/badge/ego_lite-0.6.2.9-111111?style=flat-square)](https://lite.ego.app/)
-[![OpenRouter](https://img.shields.io/badge/Jev-OpenRouter-6B4EFF?style=flat-square)](https://openrouter.ai/keys)
+[![TypeSafe Jev](https://img.shields.io/badge/Jev-TypeSafe-6B4EFF?style=flat-square)](https://docs.typesafe.ai)
 
 A companion skill for [ego lite](https://lite.ego.app/). The coding agent states a **goal** and a **success check**. This runner lists on-page controls, clicks inside one `ego-browser` process, and returns JSON. Success is a URL or title match — not a model saying it is done.
 
@@ -18,7 +18,7 @@ It does not dump `snapshotText()` into the coding model between clicks.
 curl -fsSL https://raw.githubusercontent.com/raydocs/egolite-jev/main/scripts/install.sh | bash
 ```
 
-The script links the skill into `~/.claude/skills` and `~/.codex/skills`, then asks for an [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`). The key is stored at `~/.config/egolite-jev/env` (mode 600). `scripts/run` reads it; you do not export it every session.
+The script links the skill into `~/.claude/skills` and `~/.codex/skills`, then asks for a Jev key: a [TypeSafe](https://docs.typesafe.ai) key (preferred: ~90 ms per decision) or an [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`, ~250 ms). With both available the runner uses TypeSafe; `JEV_PROVIDER=openrouter` forces OpenRouter. The key is stored at `~/.config/egolite-jev/env` (mode 600). `scripts/run` reads it; you do not export it every session.
 
 ```bash
 npx skills add raydocs/egolite-jev
@@ -129,4 +129,4 @@ node --test tests
 
 ## License
 
-[MIT](LICENSE). Browser: [ego lite](https://lite.ego.app/). Decisions: [TypeSafe Jev](https://docs.typesafe.ai) via OpenRouter.
+[MIT](LICENSE). Browser: [ego lite](https://lite.ego.app/). Decisions: [TypeSafe Jev](https://docs.typesafe.ai), directly or via OpenRouter.

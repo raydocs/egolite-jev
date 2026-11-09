@@ -102,3 +102,17 @@ last 8 actions, and Jev may not act alone on money, deletion or sign-out control
 Same 8 tasks × 2 runs: 14/16 ok (unchanged; the Claude Code guide still fails). Median successful run
 3.4 s → 1.7 s, mean 3.7 s → 2.0 s. Multi-hop tasks now finish in 1.3–1.9 s, against 10–22 s for a plain
 heredoc loop that needs a second round; one-round plain heredocs remain ~1.4 s.
+
+## Provider: TypeSafe direct vs OpenRouter
+
+Same 18-candidate request, 15 interleaved calls per endpoint after one warm-up, from this Mac:
+
+| Endpoint | p50 | p90 | same pick |
+|---|---|---|---|
+| TypeSafe `api.typesafe.ai/v1/systemone` (`jev-1.14.0`) | 89 ms | 103 ms | 15/15 |
+| OpenRouter `api/v1/systemone` (`typesafe/jev-1.14`) | 242 ms | 255 ms | 15/15 |
+| OpenRouter `api/alpha/decisions` (`typesafe/jev-1.14`) | 250 ms | 282 ms | 15/15 |
+
+Through the runner (8 tasks × 2): per-decision median 136 ms (TypeSafe) vs 310 ms (OpenRouter); median successful
+run 1.39 s vs 1.70 s; 14/16 ok on both. The runner now prefers a TypeSafe key. Before this change its TypeSafe
+path sent the OpenRouter slug and got `400 Unknown model: jev-1.14`.
