@@ -3,7 +3,7 @@
 [English](README.md) · [中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-1F6FEB?style=flat-square)](LICENSE)
-[![ego lite](https://img.shields.io/badge/ego_lite-0.4.7.4-111111?style=flat-square)](https://lite.ego.app/)
+[![ego lite](https://img.shields.io/badge/ego_lite-0.6.2.9-111111?style=flat-square)](https://lite.ego.app/)
 [![OpenRouter](https://img.shields.io/badge/Jev-OpenRouter-6B4EFF?style=flat-square)](https://openrouter.ai/keys)
 
 A companion skill for [ego lite](https://lite.ego.app/). The coding agent states a **goal** and a **success check**. This runner lists on-page controls, clicks inside one `ego-browser` process, and returns JSON. Success is a URL or title match — not a model saying it is done.

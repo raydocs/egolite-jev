@@ -3,7 +3,7 @@
 [English](README.md) · [中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-1F6FEB?style=flat-square)](LICENSE)
-[![ego lite](https://img.shields.io/badge/ego_lite-0.4.7.4-111111?style=flat-square)](https://lite.ego.app/)
+[![ego lite](https://img.shields.io/badge/ego_lite-0.6.2.9-111111?style=flat-square)](https://lite.ego.app/)
 [![OpenRouter](https://img.shields.io/badge/Jev-OpenRouter-6B4EFF?style=flat-square)](https://openrouter.ai/keys)
 
 [ego lite](https://lite.ego.app/) 的配套 skill。编码 agent 给出 **目标** 和 **成功条件**，runner 在同一个 `ego-browser` 进程里列控件、点击，并返回 JSON。成功与否看最终 URL / 标题是否包含你给的子串，而不是模型说「做完了」。

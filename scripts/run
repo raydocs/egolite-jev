@@ -1,7 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev.XXXXXX.json")"
+# BSD mktemp only randomizes trailing X's: a ".json" suffix makes the name fixed,
+# so one leftover file would break every later run.
+ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-args.XXXXXX")"
+RESULT_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-result.XXXXXX")"
+cleanup() { rm -f "$ARGS_PATH" "$RESULT_PATH"; }
+trap cleanup EXIT
 CONFIG=""
 for candidate in \
   "${HOME}/.config/egolite-jev/env" \
@@ -17,6 +22,10 @@ if [[ -z "${OPENROUTER_API_KEY:-}" && -n "$CONFIG" ]]; then
   set -a
   source "$CONFIG"
   set +a
+fi
+
+if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" && -r "${HOME}/.config/amp/secrets/openrouter-api-key" ]]; then
+  export OPENROUTER_API_KEY="$(cat "${HOME}/.config/amp/secrets/openrouter-api-key")"
 fi
 
 if [[ -z "${GOAL:-}" ]]; then
@@ -36,7 +45,7 @@ if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESA
   exit 2
 fi
 
-PREAMBLE="$(python3 - "$ARGS_PATH" <<'PY'
+PREAMBLE="$(python3 - "$ARGS_PATH" "$RESULT_PATH" <<'PY'
 import json, os, sys
 path = sys.argv[1]
 payload = {
@@ -45,7 +54,7 @@ payload = {
     "space": os.environ.get("SPACE", "verified-actions"),
     "maxSteps": int(os.environ.get("MAX_STEPS") or 4),
     "minConf": float(os.environ.get("JEV_MIN_CONFIDENCE") or 0.45),
-    "model": os.environ.get("JEV_MODEL") or "typesafe/jev-1.13",
+    "model": os.environ.get("JEV_MODEL") or "typesafe/jev-1.14",
     "successMatch": os.environ.get("SUCCESS_MATCH") or "",
     "fill": os.environ.get("JEV_FILL") or "",
     "openrouterKey": os.environ.get("OPENROUTER_API_KEY") or "",
@@ -55,14 +64,22 @@ with open(path, "w", encoding="utf-8") as f:
     json.dump(payload, f)
 os.chmod(path, 0o600)
 print("const ARGS_PATH = " + json.dumps(path))
+print("const RESULT_PATH = " + json.dumps(sys.argv[2]))
 PY
 )"
 
-cleanup() { rm -f "$ARGS_PATH"; }
-trap cleanup EXIT
-
+# ego-browser 0.6 sends all script output to stderr, so the result JSON travels
+# through RESULT_PATH and is the only thing printed on stdout.
+status=0
 {
   printf '%s\n' "$PREAMBLE"
   cat "$ROOT/lib.js"
   cat "$ROOT/loop.js"
-} | ego-browser nodejs
+} | ego-browser nodejs >&2 || status=$?
+if [[ -s "$RESULT_PATH" ]]; then
+  cat "$RESULT_PATH"
+else
+  echo '{"ok": false, "error": "runner produced no result; see stderr"}'
+  [[ $status -ne 0 ]] || status=1
+fi
+exit "$status"

@@ -1,13 +1,24 @@
 ---
 name: egolite-jev
-description: Trigger when automating multi-step browser interactions where target buttons or links are uncertain, delegating bounded DOM navigation in ego-lite, selecting next actions via Jev fast decisions without snapshot dumps, or requiring verified page state checks before declaring browser task completion.
+description: Invoke by name for one bounded, multi-step DOM navigation in Ego Lite whose target link is uncertain and whose success is checkable by URL or title. Not for ordinary ego-browser work; a direct heredoc is faster there.
 ---
 
 # egolite-jev
 
 Delegate bounded DOM navigation to a fast candidate-selection loop inside ego-browser. Jev picks among opaque, pre-ranked candidate actions; the runner returns checkable evidence. `DONE` from Jev is never treated as success without independent verification.
 
-Requires: ego-lite 0.4.7.4 with `ego-browser` on PATH, and the `ego-browser` skill.
+Requires: ego-lite 0.6.2.9 (`ego-browser` on PATH; documented `taskSpace()`/`page.*` API), and the `ego-browser` skill.
+
+## Default dispatch
+
+Do not load this skill for ordinary browser work. For known targets, batch the justified clicks and targeted extraction in one heredoc.
+For uncertain multi-step DOM navigation, use `scripts/run` with a bounded goal and
+an independently checkable success condition instead of a snapshot/click loop.
+Before sending private page titles, URLs, or candidate labels to OpenRouter, obtain
+permission for that disclosure; otherwise keep inspection local and direct.
+Skill loading is agent guidance, not a browser interception hook. Report actual
+`steps[].via` and `timing.jev_ms`; a deterministic `href` result is not a Jev call.
+When authentication is unavailable, report the blocker once; do not claim Jev ran.
 
 ## Recipe: Choosing the Right Browser Tool
 
@@ -28,7 +39,9 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 - `SUCCESS_MATCH` is verified against `(url + " " + title).toLowerCase()`.
 - Fill values come strictly from `JEV_FILL` (JSON map); missing values escalate to `need_llm`.
 - Budget is capped at 4 actions (max 8).
-- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh`. Do not paste the key into the transcript if that file exists.
+- Candidates: whole-page snapshot plus DOM `a[href]` links, one per destination. A cross-document link is opened by its href; buttons and in-page anchors are clicked.
+- Jev never acts alone on money, deletion or sign-out controls (`Buy`, `Delete`, `Sign out`, `删除`, `支付`, …): the run stops with `need_llm` and `detail: guarded action: …`.
+- Auth: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` from `scripts/install.sh` (legacy `~/.config/ego-verified-actions/env` is also supported). If no provider key is configured, the runner reads `~/.config/amp/secrets/openrouter-api-key` when available. Never print or commit credentials. Local secret files are not automatically available in cloud orbs.
 
 ## Result Handling
 
@@ -37,7 +50,7 @@ The runner outputs JSON stdout: `{ok, reason, goal, elapsed_ms, space, page, ste
 | `reason` | Description | Action to Take |
 |---|---|---|
 | `done` | Target reached; `SUCCESS_MATCH` verified in URL or title. | `ok: true`. Task complete. Extract data with `js()` if needed. |
-| `need_llm` | Choice validation failed, confidence < 0.45, `escalate_1` chosen, or fill missing. | Inspect page with one targeted snapshot, then use heredoc or stop. Do not loop blindly. |
+| `need_llm` | Choice validation failed, confidence < 0.45, `escalate_1` chosen, a guarded control picked, a click/goto failed, or fill missing. `detail` says which. | Inspect page with one targeted snapshot, then use heredoc or stop. Do not loop blindly. |
 | `dialog` | Native dialog (`pageInfo().dialog`) appeared. | Handle dialog via CDP or hand off to user. |
 | `budget_exhausted` | Action budget reached without matching `SUCCESS_MATCH`. | Inspect `steps`. Refine goal or hand off; do not re-run unchanged. |
 

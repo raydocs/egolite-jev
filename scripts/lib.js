@@ -21,28 +21,72 @@ function parseSnapshot(content) {
       raw,
     });
   }
+  // An unnamed control takes the first named node inside its own subtree (e.g. an
+  // anchor wrapping container > text "Windows"), never a sibling's text.
   for (let i = 0; i < lines.length; i++) {
-    const child = lines[i + 1];
-    if (!lines[i].name && child && child.indent > lines[i].indent && child.role === 'text') {
-      lines[i].name = child.name;
+    if (lines[i].name) continue;
+    for (let j = i + 1; j < lines.length && lines[j].indent > lines[i].indent; j++) {
+      if (lines[j].name) { lines[i].name = lines[j].name; break; }
     }
   }
   return lines;
 }
 
-function buildCandidates(content, goal) {
+// A plain link to another document: opening its href reaches the same destination as the
+// click without waiting on it, or on a hidden duplicate's failed click. Buttons and in-page
+// (#hash) links are still clicked.
+function opensByHref(action, currentUrl) {
+  if (!action || action.op !== 'CLICK' || !/^https?:\/\//i.test(action.href || '')) return false;
+  if (!/^(anchor|link)$/i.test(action.role || '')) return false;
+  return destinationKey(action.href) !== destinationKey(currentUrl || '');
+}
+
+// Controls Jev may not act on by itself: money, deletion, sign-out. The caller decides.
+function guardedAction(action) {
+  const text = String(action && action.name || '');
+  return /\b(buy|pay|purchase|checkout|check out|place order|delete|remove|unsubscribe|sign out|log out|logout|cancel subscription|transfer)\b|删除|支付|付款|购买|下单|退出登录|注销/i.test(text);
+}
+
+function hrefPath(href) {
+  // Origin is shared by most links on a page; scoring it makes every link match the site name.
+  return String(href || '').replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');
+}
+
+function destinationKey(href) {
+  return String(href || '').replace(/#.*$/, '');
+}
+
+// options.successMatch: hrefs containing it always make the list (deterministic click).
+// options.extraLinks: [{ name, href }] from the DOM, for links the accessibility snapshot omits
+// (collapsed navigation); they have no ref and are opened by href.
+function buildCandidates(content, goal, options = {}) {
+  const successMatch = String(options.successMatch || '').toLowerCase();
   const tokens = new Set(goal.toLowerCase().split(/[^a-z0-9]+/).filter(
-    token => token && !/^(the|and|for|open|page|this|that|with|from|into)$/.test(token)
+    token => token && !/^(the|and|for|open|page|this|that|with|from|into|find|guide|documentation)$/.test(token)
   ));
+  const lines = parseSnapshot(content);
+  const seen = new Set(lines.map(line => destinationKey(line.href)).filter(Boolean));
+  for (const link of options.extraLinks || []) {
+    if (!/^https?:\/\//i.test(link.href || '') || seen.has(destinationKey(link.href))) continue;
+    seen.add(destinationKey(link.href));
+    lines.push({ indent: 0, role: 'link', ref: '', href: link.href, loc: '',
+      name: String(link.name || '').replace(/\s+/g, ' ').trim().slice(0, 80), raw: '' });
+  }
   const ranked = [];
-  for (const line of parseSnapshot(content)) {
+  for (const line of lines) {
     const isField = /^(textbox|searchbox|combobox)$/i.test(line.role);
-    if (!line.ref || (!isField && !/^(anchor|button|link|tab|menuitem)$/i.test(line.role))) continue;
+    if (!isField && !/^(anchor|button|link|tab|menuitem)$/i.test(line.role)) continue;
+    if (!line.ref && (isField || !/^https?:\/\//i.test(line.href))) continue;
+    if (!isField && !line.name && line.href) {
+      line.name = decodeURIComponent(hrefPath(destinationKey(line.href)).split('/').filter(Boolean).pop() || '')
+        .replace(/[-_]+/g, ' ').replace(/\.html?$/i, '').trim();
+    }
     if (!isField && !line.name) continue;
     if (/^(what|how|why|does|can|is|where|when)\b/i.test(line.name) && !line.href) continue;
-    const words = new Set((line.name + ' ' + line.href).toLowerCase().split(/[^a-z0-9]+/));
+    const words = new Set((line.name + ' ' + hrefPath(line.href)).toLowerCase().split(/[^a-z0-9]+/));
     let score = line.href ? 1 : 0;
     for (const token of tokens) if (words.has(token)) score += 2;
+    if (successMatch && line.href && line.href.toLowerCase().includes(successMatch)) score += 100;
     ranked.push({
       score,
       action: {
@@ -52,8 +96,18 @@ function buildCandidates(content, goal) {
     });
   }
   ranked.sort((a, b) => b.score - a.score);
+  // One candidate per destination: duplicates ("Docs", "Docs", "Read the docs") split Jev's
+  // probability below the confidence floor even when they all agree.
+  const destinations = new Set();
+  const unique = ranked.filter(({ action }) => {
+    if (action.op !== 'CLICK' || !action.href) return true;
+    const key = destinationKey(action.href);
+    if (destinations.has(key)) return false;
+    destinations.add(key);
+    return true;
+  });
   const counts = { CLICK: 0, FILL: 0 };
-  const actions = ranked.slice(0, 16).map(({ action }) => ({
+  const actions = unique.slice(0, 16).map(({ action }) => ({
     key: action.op.toLowerCase() + '_' + (++counts[action.op]), ...action,
   }));
   actions.push({ key: 'scroll_1', op: 'SCROLL_DOWN', name: 'scroll down' });
