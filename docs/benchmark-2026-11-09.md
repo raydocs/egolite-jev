@@ -74,3 +74,21 @@ without a ref and opened by href.
 
 14 of 16 runs succeed (was 4 of 8), all at the default minConf 0.45. Plain heredocs: 8 of 8, 1.4 s when the
 link is on the start page, 10–22 s when they need a second round.
+
+Remaining miss (Claude Code guide): Jev keeps choosing "vs Claude Chrome extension" (0.42–0.59) over "Docs".
+Tried and not adopted: viewport page text in `state` (it escalates instead, 0.33–0.43), each link's page
+section in the criteria, an instruction to prefer hub sections, and backtracking with the lure excluded
+(Jev then escalates on the home page). A lexical lure with no hub hint is a limit of a one-shot choice.
+
+## Similar projects (read 2026-11-09, not re-run)
+
+| Project | Candidates | Acceptance | Own measured result |
+|---|---|---|---|
+| Ying-Kai-Liao/jev-browser | DOM, all elements, nearby text, href path; Playwright | top-1, `minTarget` 0.3 → "ambiguous" | 40/42 fixture + public tasks, ~290 ms/call; aggregates only |
+| jiangkoumo/ego-decision-layer | DOM viewport, ≤60; viewport text in state | gates off by default; stale/visibility/danger guards | 13/16 live trials (ego host 8/8); raw JSON committed |
+| ZephyrDeng/ego-jev | viewport snapshot + DOM, ≤120, `in:` context, position | op ≥ 0.45, target ≥ 0.35, screenshot locate rescue | one 7-step form, 3/3; raw runs committed |
+| romaluev/jev-ego | DOM viewport, ≤250, page text ≤6000 | none (argmax) | one Google Flights run, 31.6 s |
+
+None dedupes by destination or ranks by the goal; all target general agent loops (forms, search), and none
+reports a head-to-head against plain agent heredocs on navigation. Ideas worth a later test here: per-step
+history in `state`, a stale/visibility re-check before clicks, and a danger-word block before acting.
