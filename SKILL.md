@@ -1,18 +1,17 @@
 ---
 name: egolite-jev
-description: Use alongside ego-browser whenever using Ego Lite for browsing, website inspection, or browser automation, including when the user does not mention Jev. Selects the appropriate direct or bounded-navigation workflow.
+description: Invoke by name for one bounded, multi-step DOM navigation in Ego Lite whose target link is uncertain and whose success is checkable by URL or title. Not for ordinary ego-browser work; a direct heredoc is faster there.
 ---
 
 # egolite-jev
 
 Delegate bounded DOM navigation to a fast candidate-selection loop inside ego-browser. Jev picks among opaque, pre-ranked candidate actions; the runner returns checkable evidence. `DONE` from Jev is never treated as success without independent verification.
 
-Requires: ego-lite 0.4.7.4 with `ego-browser` on PATH, and the `ego-browser` skill.
+Requires: ego-lite 0.6.2.9 (`ego-browser` on PATH; documented `taskSpace()`/`page.*` API), and the `ego-browser` skill.
 
 ## Default dispatch
 
-Load this skill alongside `ego-browser` before browser work; the user need not ask for Jev.
-For known targets, batch the justified clicks and targeted extraction in one heredoc.
+Do not load this skill for ordinary browser work. For known targets, batch the justified clicks and targeted extraction in one heredoc.
 For uncertain multi-step DOM navigation, use `scripts/run` with a bounded goal and
 an independently checkable success condition instead of a snapshot/click loop.
 Before sending private page titles, URLs, or candidate labels to OpenRouter, obtain

@@ -18,7 +18,7 @@ GOAL='...' URL='...' SUCCESS_MATCH='...' ./scripts/run
   - `space`: Task space name (defaults to `verified-actions`)
   - `maxSteps`: Max iterations (default 4, hard cap 8)
   - `minConf`: Minimum confidence threshold (default 0.45)
-  - `model`: Decision model (default `typesafe/jev-1.13`)
+  - `model`: Decision model (default `typesafe/jev-1.14`)
   - `successMatch`: Target substring for independent verification
   - `fill`: Dictionary mapping control labels/keys to values for `FILL` operations
   - `keys`: API credentials

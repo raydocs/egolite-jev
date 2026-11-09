@@ -1,6 +1,6 @@
 # egolite-jev — locked spec
 
-Companion skill for **ego-lite 0.4.7.4** (global helpers: `useOrCreateTaskSpace`, `snapshot()`, `click('@N')`).
+Companion skill for **ego-lite 0.6.2.9** (documented API: `taskSpace(name)`, `page.snapshot({ scope: 'full_page' })`, `page.click('@N')`). Written against 0.4.7.4's global helpers; those still exist in 0.6 but are undocumented.
 
 ## Product claim
 
@@ -58,7 +58,7 @@ Wrapper `scripts/run`:
 3. Loop max 4 (cap 8):
    - If `pageInfo().dialog` → `{reason:'dialog'}`
    - If `verifiedDone(page, SUCCESS_MATCH)` → `{reason:'done'}`
-   - `snapshot()` then `buildCandidates(content, GOAL)`
+   - `page.snapshot({ scope: 'full_page' })` then `buildCandidates(content, GOAL)`
    - One Jev Choice `next_action` whose criteria are `describeAction` strings keyed by opaque ids **plus** `escalate_1`
    - `validateChoice`; fail → `need_llm`
    - `escalate_1` or confidence < 0.45 → `need_llm`
@@ -67,12 +67,12 @@ Wrapper `scripts/run`:
      - if a **new** targetId appeared → `switchTab` that id, `waitForLoad` only then
      - else if URL changed → `waitForLoad`
      - else wait 0.15s (**never** `waitForLoad` on same-page clicks)
-   - SCROLL_DOWN: `scrollBy(900)`
-4. JSON stdout: `{ok, reason, goal, elapsed_ms, space, page:{url,title}, steps}`
+   - SCROLL_DOWN: `page.evaluate(() => window.scrollBy(0, 900))`
+4. JSON stdout (ego-browser 0.6 sends script output to stderr, so loop.js writes the result file `RESULT_PATH` and `scripts/run` prints it): `{ok, reason, goal, elapsed_ms, space, page:{url,title}, steps}`
    - `ok` true **only** if `verifiedDone` on the final page
    - Jev saying done/escalate is not `ok`
 
-Jev endpoint: OpenRouter `https://openrouter.ai/api/alpha/decisions` model `typesafe/jev-1.13`, else TypeSafe `https://api.typesafe.ai/v1/systemone`.
+Jev endpoint: OpenRouter `https://openrouter.ai/api/alpha/decisions` model `typesafe/jev-1.14`, else TypeSafe `https://api.typesafe.ai/v1/systemone`.
 
 No naive mode, no screenshots, no RECORD_DIR.
 
@@ -80,7 +80,7 @@ No naive mode, no screenshots, no RECORD_DIR.
 
 `SKILL.md` ≤ 120 lines. Description is **triggers only**. Recipe: when to use vs ego heredoc vs siteSkills vs visual vs handoff. Run command uses `<skill_dir>/scripts/run`. Result table. Forbidden list (no snapshot dump, no Chrome, no auto takeOver, no treating Jev DONE as success).
 
-`README.md`: `npx skills add` first, ego 0.4.7.4 requirement, env, Docs example.
+`README.md`: `npx skills add` first, ego 0.6.2.9 requirement, env, Docs example.
 
 `references/contract.md`: JSON in/out, wait policy, opaque keys.
 
