@@ -116,3 +116,18 @@ Same 18-candidate request, 15 interleaved calls per endpoint after one warm-up, 
 Through the runner (8 tasks × 2): per-decision median 136 ms (TypeSafe) vs 310 ms (OpenRouter); median successful
 run 1.39 s vs 1.70 s; 14/16 ok on both. The runner now prefers a TypeSafe key. Before this change its TypeSafe
 path sent the OpenRouter slug and got `400 Unknown model: jev-1.14`.
+
+## Fifth pass: one-process search (`scripts/search`)
+
+The navigate runner is the wrong tool for research (loose `SUCCESS_MATCH` gave false successes). `scripts/search` does
+search, one Jev ranking call and parallel page reads in one `ego-browser nodejs` process. TypeSafe direct, K=3.
+
+| Query | ranked_by | search_ms | jev_ms | open_ms | total_ms | Pages opened |
+|---|---|---|---|---|---|---|
+| VPN landing page design inspiration | jev | 1139 | 178 | 3247 | 4851 | 3/3 |
+| privacy app website hero section examples | jev | 949 | 150 | 2393 | 3559 | 3/3 |
+| SaaS pricing page UI examples | jev | 1693 | 164 | 2507 | 4426 | 3/3 |
+
+A heredoc loop that searches, reads the results and opens pages one round at a time took ~55 s for the same kind of
+query in the prototype runs. In the prototype, Jev's order beat DuckDuckGo's on 2 of 3 queries (gallery and case-study
+pages moved ahead of listicles); the time saved comes from removing coding-model turns, not from the ranking.

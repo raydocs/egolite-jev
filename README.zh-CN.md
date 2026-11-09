@@ -119,6 +119,16 @@ GOAL='Open the Docs page' \
 
 只有 `done` 时 `ok` 为 true。
 
+## 搜索
+
+```bash
+QUERY='saas pricing page ui examples' K=3 ./scripts/search
+```
+
+一个进程内完成：DuckDuckGo 结果、一次 Jev 排序（约 150 ms）、并行打开前 `K` 个页面（默认 3，最多 5）。三页共
+3.6–4.9 秒，搜索后逐页打开的 heredoc 循环约 55 秒。输出 `{ok, ranked_by, timing, results, pages}`；没有 key 时保留
+搜索原顺序。查询会发给 DuckDuckGo，结果标题会发给 Jev，不要写私有名称。
+
 ---
 
 ## 测试

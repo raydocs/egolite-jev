@@ -165,3 +165,93 @@ function deterministicAction(packed, successMatch) {
     action.op === 'CLICK' && hrefMatchesSuccess(action.href, successMatch));
   return hits[0] || null;
 }
+
+// DuckDuckGo HTML results link through /l/?uddg=<target>; ad links are dropped.
+function decodeSearchHref(href) {
+  let url
+  try { url = new URL(String(href || ''), 'https://duckduckgo.com') } catch { return null }
+  if (/duckduckgo\.com$/i.test(url.hostname) && url.pathname === '/y.js') return null
+  if (/bing\.com$/i.test(url.hostname) && /aclick/.test(url.pathname)) return null
+  const target = url.searchParams.get('uddg')
+  const out = target || url.href
+  return /^https?:\/\//i.test(out) ? out : null
+}
+
+function searchResults(raw, limit) {
+  const seen = new Set()
+  const out = []
+  for (const item of raw || []) {
+    const url = decodeSearchHref(item.href)
+    if (!url || seen.has(destinationKey(url))) continue
+    seen.add(destinationKey(url))
+    out.push({ title: String(item.title || '').replace(/\s+/g, ' ').trim().slice(0, 100), url,
+      snippet: String(item.snippet || '').replace(/\s+/g, ' ').trim().slice(0, 180) })
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+function searchCriteria(results) {
+  const criteria = {}
+  results.forEach((r, i) => {
+    let host = ''
+    try { host = new URL(r.url).hostname } catch {}
+    criteria['r' + (i + 1)] = r.title + ' — ' + host + (r.snippet ? ' — ' + r.snippet : '')
+  })
+  return criteria
+}
+
+// Orders results by Jev's probabilities; null when the answer fails validation.
+function rankResults(answer, results) {
+  const keys = results.map((_, i) => 'r' + (i + 1))
+  if (!validateChoice(answer, keys).ok) return null
+  return keys.slice().sort((a, b) => answer.probabilities[b] - answer.probabilities[a])
+    .map((key) => results[Number(key.slice(1)) - 1])
+}
+
+// Shared by loop.js and search.js. ARGS_PATH, RESULT_PATH and fs come from the script preamble.
+function emit(result) {
+  const text = JSON.stringify(result, null, 2)
+  fs.writeFileSync(RESULT_PATH, text + '\n', { mode: 0o600 })
+  console.log(text)
+}
+
+function readArgs() {
+  const parsed = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'))
+  try { fs.unlinkSync(ARGS_PATH) } catch {}
+  return parsed
+}
+
+// TypeSafe first (lower latency); JEV_PROVIDER=openrouter forces OpenRouter when both keys exist.
+function jevAuth(args) {
+  if (args.typesafeKey && args.provider !== 'openrouter') {
+    return {
+      provider: 'typesafe',
+      url: 'https://api.typesafe.ai/v1/systemone',
+      headers: {
+        Authorization: 'Bearer ' + args.typesafeKey,
+        'Content-Type': 'application/json',
+      },
+    }
+  }
+  if (args.openrouterKey) {
+    return {
+      provider: 'openrouter',
+      url: 'https://openrouter.ai/api/alpha/decisions',
+      headers: {
+        Authorization: 'Bearer ' + args.openrouterKey,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/raydocs/egolite-jev',
+        'X-Title': 'egolite-jev',
+      },
+    }
+  }
+  return null
+}
+
+async function postJson(url, headers, body) {
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+  const text = await res.text()
+  if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.slice(0, 400))
+  return JSON.parse(text)
+}

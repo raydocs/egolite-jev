@@ -7,48 +7,33 @@ ARGS_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-args.XXXXXX")"
 RESULT_PATH="$(mktemp "${TMPDIR:-/tmp}/egolite-jev-result.XXXXXX")"
 cleanup() { rm -f "$ARGS_PATH" "$RESULT_PATH"; }
 trap cleanup EXIT
-CONFIG=""
-for candidate in \
-  "${HOME}/.config/egolite-jev/env" \
-  "${HOME}/.config/ego-verified-actions/env"
-do
-  if [[ -f "$candidate" ]]; then
-    CONFIG="$candidate"
-    break
+MODE="${EGOLITE_JEV_MODE:-navigate}"
+# shellcheck source=keys.sh
+source "$ROOT/keys.sh"
+
+if [[ "$MODE" == "search" ]]; then
+  if [[ -z "${QUERY:-}" ]]; then
+    echo 'Set QUERY, e.g. QUERY="vpn landing page design" (optional GOAL to rank results)' >&2
+    exit 2
   fi
-done
-if [[ -z "${OPENROUTER_API_KEY:-}" && -n "$CONFIG" ]]; then
-  # shellcheck disable=SC1090
-  set -a
-  source "$CONFIG"
-  set +a
+  SCRIPT="$ROOT/search.js"
+else
+  if [[ -z "${GOAL:-}" ]]; then
+    echo 'Set GOAL and SUCCESS_MATCH, e.g. GOAL="Open the Docs page" SUCCESS_MATCH="/document"' >&2
+    exit 2
+  fi
+  if [[ -z "${SUCCESS_MATCH:-}" ]]; then
+    echo 'Set SUCCESS_MATCH to a URL/title substring that proves the task' >&2
+    exit 2
+  fi
+  if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" ]]; then
+    echo 'Set OPENROUTER_API_KEY or TYPESAFE_API_KEY' >&2
+    exit 2
+  fi
+  SCRIPT="$ROOT/loop.js"
 fi
-
-# TypeSafe's own endpoint answers in ~90 ms against ~250 ms through OpenRouter (2026-11-09), so a
-# TypeSafe key is used first. Only the key line is read from ~/.config/typesafe/env, never sourced.
-if [[ -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" && -r "${HOME}/.config/typesafe/env" ]]; then
-  TYPESAFE_API_KEY="$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}TYPESAFE_API_KEY=//p' "${HOME}/.config/typesafe/env" | head -n 1 | sed "s/^[\"']//; s/[\"']\$//")"
-  if [[ -n "$TYPESAFE_API_KEY" ]]; then export TYPESAFE_API_KEY; else unset TYPESAFE_API_KEY; fi
-fi
-
-if [[ -z "${OPENROUTER_API_KEY:-}" && ( "${JEV_PROVIDER:-}" == "openrouter" || ( -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" ) ) && -r "${HOME}/.config/amp/secrets/openrouter-api-key" ]]; then
-  export OPENROUTER_API_KEY="$(cat "${HOME}/.config/amp/secrets/openrouter-api-key")"
-fi
-
-if [[ -z "${GOAL:-}" ]]; then
-  echo 'Set GOAL and SUCCESS_MATCH, e.g. GOAL="Open the Docs page" SUCCESS_MATCH="/document"' >&2
-  exit 2
-fi
-if [[ -z "${SUCCESS_MATCH:-}" ]]; then
-  echo 'Set SUCCESS_MATCH to a URL/title substring that proves the task' >&2
-  exit 2
-fi
-if [[ ! -f "$ROOT/lib.js" || ! -f "$ROOT/loop.js" ]]; then
-  echo "missing $ROOT/lib.js or $ROOT/loop.js" >&2
-  exit 2
-fi
-if [[ -z "${OPENROUTER_API_KEY:-}" && -z "${TYPESAFE_API_KEY:-}" && -z "${TYPESAFE_AI_API_KEY:-}" ]]; then
-  echo 'Set OPENROUTER_API_KEY or TYPESAFE_API_KEY' >&2
+if [[ ! -f "$ROOT/lib.js" || ! -f "$SCRIPT" ]]; then
+  echo "missing $ROOT/lib.js or $SCRIPT" >&2
   exit 2
 fi
 
@@ -58,7 +43,7 @@ path = sys.argv[1]
 payload = {
     "goal": os.environ.get("GOAL", ""),
     "url": os.environ.get("URL", ""),
-    "space": os.environ.get("SPACE", "verified-actions"),
+    "space": os.environ.get("SPACE") or ("egolite-jev-search" if os.environ.get("EGOLITE_JEV_MODE") == "search" else "verified-actions"),
     "maxSteps": int(os.environ.get("MAX_STEPS") or 4),
     "minConf": float(os.environ.get("JEV_MIN_CONFIDENCE") or 0.45),
     "model": os.environ.get("JEV_MODEL") or "typesafe/jev-1.14",
@@ -67,6 +52,8 @@ payload = {
     "openrouterKey": os.environ.get("OPENROUTER_API_KEY") or "",
     "typesafeKey": os.environ.get("TYPESAFE_API_KEY") or os.environ.get("TYPESAFE_AI_API_KEY") or "",
     "provider": os.environ.get("JEV_PROVIDER") or "",
+    "query": os.environ.get("QUERY") or "",
+    "k": int(os.environ.get("K") or 3),
 }
 with open(path, "w", encoding="utf-8") as f:
     json.dump(payload, f)
@@ -82,7 +69,7 @@ status=0
 {
   printf '%s\n' "$PREAMBLE"
   cat "$ROOT/lib.js"
-  cat "$ROOT/loop.js"
+  cat "$SCRIPT"
 } | ego-browser nodejs >&2 || status=$?
 if [[ -s "$RESULT_PATH" ]]; then
   cat "$RESULT_PATH"

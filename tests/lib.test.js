@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const path = join(__dirname, '../scripts/lib.js');
 const source = existsSync(path) ? readFileSync(path, 'utf8') : '';
-const lib = vm.createContext({});
+const lib = vm.createContext({ URL });
 vm.runInContext(source, lib);
 
 function call(name, ...args) {
@@ -165,4 +165,24 @@ test('maps the OpenRouter Jev slug to the TypeSafe model name', () => {
   assert.equal(call('typesafeModel', 'typesafe/jev-1.14'), 'jev-1.14.0');
   assert.equal(call('typesafeModel', 'jev-1.14.0'), 'jev-1.14.0');
   assert.equal(call('typesafeModel', 'typesafe/jev-latest'), 'jev-latest');
+});
+
+test('decodes DuckDuckGo result links, drops ads and duplicate destinations', () => {
+  const results = call('searchResults', [
+    { title: 'A', href: 'https://duckduckgo.com/l/?uddg=https%3A%2F%2Fdribbble.com%2Ftags%2Fvpn&rut=x' },
+    { title: 'Ad', href: 'https://duckduckgo.com/y.js?ad_domain=x' },
+    { title: 'A again', href: 'https://dribbble.com/tags/vpn#top' },
+    { title: 'B', href: 'https://www.saasframe.io/x', snippet: '  Privacy   tools ' },
+  ], 10);
+  assert.deepEqual(JSON.parse(JSON.stringify(results)), [
+    { title: 'A', url: 'https://dribbble.com/tags/vpn', snippet: '' },
+    { title: 'B', url: 'https://www.saasframe.io/x', snippet: 'Privacy tools' },
+  ]);
+});
+
+test('orders search results by a valid Jev answer and rejects an invalid one', () => {
+  const results = [{ url: 'https://a.test/' }, { url: 'https://b.test/' }, { url: 'https://c.test/' }];
+  const answer = { choice: 'r3', confidence: 0.6, probabilities: { r1: 0.1, r2: 0.3, r3: 0.6 } };
+  assert.deepEqual(Array.from(call('rankResults', answer, results), r => r.url), ['https://c.test/', 'https://b.test/', 'https://a.test/']);
+  assert.equal(call('rankResults', { ...answer, choice: 'r1' }, results), null);
 });

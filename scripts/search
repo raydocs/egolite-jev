@@ -1,0 +1,5 @@
+#!/bin/bash
+# One-process web search: DuckDuckGo results, one Jev ranking call, top K pages opened in
+# parallel and summarized. Same keys and JSON-on-stdout contract as scripts/run.
+set -euo pipefail
+EGOLITE_JEV_MODE=search exec "$(cd "$(dirname "$0")" && pwd)/run"

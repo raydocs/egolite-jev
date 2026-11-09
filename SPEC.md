@@ -98,6 +98,12 @@ GOAL='Open the Docs page' URL='https://lite.ego.app/' SUCCESS_MATCH='/document' 
 
 Pass: `ok:true`, url contains `/document`, `elapsed_ms < 20000`, no FAQ name in `steps[].detail`, process is ego-browser.
 
+## Search: `scripts/search` → `scripts/search.js`
+
+`scripts/run` with `EGOLITE_JEV_MODE=search`; needs `QUERY` only. DuckDuckGo HTML results through `searchResults`
+(lib), one Jev `choice` over `r1..r10` (`searchCriteria`, `rankResults`; an invalid answer keeps search order), top `K`
+opened in parallel tabs, digests emitted through `RESULT_PATH`, task space finished with `keep: []`.
+
 ## Non-goals
 
 Chrome/Harness, daemon, Flights booker, inspector UI, overwriting ego-browser SKILL.md, Node 26 lock, OpenAI Responses requirement.

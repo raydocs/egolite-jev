@@ -184,17 +184,7 @@ function fail(msg) {
   throw new Error(msg)
 }
 
-function emit(result) {
-  const text = JSON.stringify(result, null, 2)
-  fs.writeFileSync(RESULT_PATH, text + '\n', { mode: 0o600 })
-  console.log(text)
-}
 
-function readArgs() {
-  const parsed = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'))
-  try { fs.unlinkSync(ARGS_PATH) } catch {}
-  return parsed
-}
 
 function parseFill(raw) {
   if (!raw) return {}
@@ -207,32 +197,6 @@ function parseFill(raw) {
   }
 }
 
-// TypeSafe first (lower latency); JEV_PROVIDER=openrouter forces OpenRouter when both keys exist.
-function jevAuth(args) {
-  if (args.typesafeKey && args.provider !== 'openrouter') {
-    return {
-      provider: 'typesafe',
-      url: 'https://api.typesafe.ai/v1/systemone',
-      headers: {
-        Authorization: 'Bearer ' + args.typesafeKey,
-        'Content-Type': 'application/json',
-      },
-    }
-  }
-  if (args.openrouterKey) {
-    return {
-      provider: 'openrouter',
-      url: 'https://openrouter.ai/api/alpha/decisions',
-      headers: {
-        Authorization: 'Bearer ' + args.openrouterKey,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/raydocs/egolite-jev',
-        'X-Title': 'egolite-jev',
-      },
-    }
-  }
-  return null
-}
 
 function fillValue(name) {
   const keys = Object.keys(FILL)
@@ -326,9 +290,3 @@ async function settleClick(receipt, beforeTabs, prevUrl) {
   return current
 }
 
-async function postJson(url, headers, body) {
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
-  const text = await res.text()
-  if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.slice(0, 400))
-  return JSON.parse(text)
-}

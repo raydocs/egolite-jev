@@ -70,6 +70,24 @@ test('runner reads only the key line of ~/.config/typesafe/env', () => {
   }
 });
 
+test('search pipes search.js and needs only QUERY', () => {
+  const home = mkdtempSync(join(tmpdir(), 'jev-search-test-'));
+  try {
+    mkdirSync(join(home, 'bin'));
+    writeFileSync(join(home, 'bin/ego-browser'), fakeBrowser('true'), { mode: 0o700 });
+    const env = { ...process.env, HOME: home, TMPDIR: home, PATH: `${home}/bin:${process.env.PATH}`,
+      OPENROUTER_API_KEY: '', TYPESAFE_API_KEY: '', TYPESAFE_AI_API_KEY: '', GOAL: '', SUCCESS_MATCH: '' };
+    const search = (extra) => spawnSync('bash', [join(__dirname, '../scripts/search')], { env: { ...env, ...extra }, encoding: 'utf8' });
+    assert.equal(search({}).status, 2);
+    writeFileSync(join(home, 'bin/ego-browser'), fakeBrowser('cat > "$TMPDIR/in.js"; grep -q "html.duckduckgo.com" "$TMPDIR/in.js" || exit 1; exec < "$TMPDIR/in.js"'), { mode: 0o700 });
+    const result = search({ QUERY: 'vpn landing page design' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), { ok: true, reason: 'done' });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test('runner reads the Amp local OpenRouter secret without overriding explicit configuration', () => {
   const home = mkdtempSync(join(tmpdir(), 'jev-auth-test-'));
   try {
