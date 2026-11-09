@@ -2,7 +2,7 @@
 
 Read `SKILL.md`. Use `scripts/run`. Do not dump `snapshotText()` into the chat.
 
-Key: `OPENROUTER_API_KEY` in the environment, or `~/.config/egolite-jev/env` written by `scripts/install.sh`. Do not ask the user to paste the key into the transcript if that file already exists.
+Key: `TYPESAFE_API_KEY` (preferred, TypeSafe's own endpoint) or `OPENROUTER_API_KEY`, in the environment or in `~/.config/egolite-jev/env` written by `scripts/install.sh`; `~/.config/typesafe/env` is also read. Do not ask the user to paste the key into the transcript if that file already exists.
 
 Smoke test:
 
