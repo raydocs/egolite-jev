@@ -1,6 +1,6 @@
 ---
 name: egolite-jev
-description: Invoke by name for one bounded, multi-step DOM navigation in Ego Lite whose target link is uncertain and whose success is checkable by URL or title. Not for ordinary ego-browser work; a direct heredoc is faster there.
+description: Use with ego-browser when a task must click several levels deep on a public site to reach a page that is not linked from the start page (a docs page, a setting, a category) and arrival is checkable by URL or title. Not for web search, open-ended research, single-page extraction, forms, or private pages.
 ---
 
 # egolite-jev
@@ -11,10 +11,12 @@ Requires: ego-lite 0.6.2.9 (`ego-browser` on PATH; documented `taskSpace()`/`pag
 
 ## Default dispatch
 
-Do not load this skill for ordinary browser work. For known targets, batch the justified clicks and targeted extraction in one heredoc.
+Use it for multi-hop navigation whose target is not on the start page (measured 1.2–1.9 s against 10–22 s for a
+snapshot/heredoc loop that needs a second round). When the target link is already on the page, or the task is search,
+research or extraction, use an `ego-browser` heredoc or a search tool instead. For known targets, batch the justified clicks and targeted extraction in one heredoc.
 For uncertain multi-step DOM navigation, use `scripts/run` with a bounded goal and
 an independently checkable success condition instead of a snapshot/click loop.
-Before sending private page titles, URLs, or candidate labels to OpenRouter, obtain
+Before sending private page titles, URLs, or candidate labels to TypeSafe or OpenRouter, obtain
 permission for that disclosure; otherwise keep inspection local and direct.
 Skill loading is agent guidance, not a browser interception hook. Report actual
 `steps[].via` and `timing.jev_ms`; a deterministic `href` result is not a Jev call.
