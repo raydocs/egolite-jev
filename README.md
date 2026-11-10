@@ -127,8 +127,9 @@ QUERY='saas pricing page ui examples' K=3 ./scripts/search
 
 DuckDuckGo results, one Jev ranking call (~150 ms) and the top `K` pages (default 3, max 5) read in parallel, in one
 process. Pages are fetched without a browser first; only script-rendered or blocked ones open in a tab. 2.3–3.6 s for
-three pages, against ~55 s for a search-then-open heredoc loop. `SHOTS=1` opens every page in the browser and saves a
-viewport screenshot per page (5.8–13.4 s), for design inspiration. It prints `{ok, mode, ranked_by, timing, results,
+three pages, against ~55 s for a search-then-open heredoc loop. `SHOTS=1` is for design references: each page (or
+each of `URLS`) is captured at 1280×800 (`SHOT_VIEW=mobile|both` for 390×844), settled, with consent banners hidden
+by CSS, as JPEG, plus one contact sheet and a `brief` of paths to hand a reviewer (3–6 s for three pages). It prints `{ok, mode, ranked_by, timing, results,
 pages}`; without a key it keeps the search order. The query goes to DuckDuckGo and
 result titles to Jev, so keep private names out of it.
 

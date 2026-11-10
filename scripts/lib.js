@@ -239,6 +239,140 @@ function digestUsable(digest) {
   return Boolean(digest && digest.text && digest.text.length >= 200 && (digest.title || digest.headings.length))
 }
 
+// --- Visual references (SHOTS=1). Pure decisions here; capture.js gathers page facts and applies them. ---
+
+// URLS="a b c": http(s) only, deduplicated by destination, at most 6.
+function parseUrlList(value) {
+  const seen = new Set()
+  const out = []
+  for (const part of String(value || '').split(/[\s,]+/)) {
+    if (!/^https?:\/\//i.test(part)) continue
+    let url
+    try { url = new URL(part).href } catch { continue }
+    if (seen.has(destinationKey(url))) continue
+    seen.add(destinationKey(url))
+    out.push(url)
+    if (out.length >= 6) break
+  }
+  return out
+}
+
+// Desktop 1280x800 and mobile 390x844 at DPR 1: under the vision long-edge cap, so nothing is downscaled.
+// SHOT_HEIGHT captures more of the page (bounded at 2400 px); the default is one screen.
+function shotPlan(args) {
+  const view = ['desktop', 'mobile', 'both'].includes(args.shotView) ? args.shotView : 'desktop'
+  const asked = Number(args.shotHeight) || 0
+  const views = []
+  if (view !== 'mobile') views.push({ name: 'desktop', width: 1280, height: 800, mobile: false })
+  if (view !== 'desktop') views.push({ name: 'mobile', width: 390, height: 844, mobile: true })
+  for (const v of views) v.clipHeight = Math.max(v.height, Math.min(2400, asked || v.height))
+  return { views, scheme: ['light', 'dark'].includes(args.shotScheme) ? args.shotScheme : '', quality: 70,
+    sheet: args.sheet !== false }
+}
+
+// Default visual deadline: 12 s for up to 3 pages (3 capture tabs run at once), 8 s more per further batch of 3, and
+// x1.5 when SHOT_HEIGHT asks for more than one screen. An explicit BUDGET_MS wins.
+function visualBudget(pages, plan) {
+  const batches = Math.max(1, Math.ceil(pages / 3))
+  const tall = plan.views.some((v) => v.clipHeight > v.height)
+  return Math.round((12000 + 8000 * (batches - 1)) * (tall ? 1.5 : 1))
+}
+
+// Approximate vision tokens: images over 1568 px on the long edge or 1.15 MP are scaled down first, then w*h/750.
+function imageTokens(width, height) {
+  const scale = Math.min(1, 1568 / Math.max(width, height), Math.sqrt(1150000 / (width * height)))
+  return Math.ceil((width * scale) * (height * scale) / 750)
+}
+
+const CONSENT_WORDS = /cookie|consent|gdpr|ccpa|onetrust|cookiebot|usercentrics|didomi|truste|quantcast|sp_message|\bcmp\b|privacy (choices|preferences|settings|center)|we use cookies|we value your privacy/i
+
+// Overlays to hide with CSS before a capture (nothing is clicked or accepted): consent banners, modal dialogs, and
+// the scrims behind them. A fixed nav or header with ordinary links stays.
+function overlayHideList(facts) {
+  const hide = new Set()
+  let blocking = false
+  for (const f of facts || []) {
+    const floating = f.position === 'fixed' || f.position === 'sticky'
+    const dialog = f.role === 'dialog' || f.role === 'alertdialog' || f.ariaModal || f.tag === 'dialog'
+    const attrHit = CONSENT_WORDS.test([f.id, f.cls, f.label, f.src].join(' '))
+    const textHit = CONSENT_WORDS.test(f.text || '') && (f.textLength || 0) <= 2000 && (f.area <= 0.6 || dialog)
+    const shell = f.area >= 0.9 && (f.textLength || 0) > 3000
+    if ((floating || dialog) && (attrHit || textHit) && !shell) { hide.add(f.i); blocking = true; continue }
+    if (dialog && floating && f.area >= 0.15 && !shell) { hide.add(f.i); blocking = true }
+  }
+  if (blocking) {
+    for (const f of facts) if (f.position === 'fixed' && (f.textLength || 0) < 5 && f.area >= 0.5) hide.add(f.i)
+  }
+  return [...hide]
+}
+
+const BOT_WORDS = /just a moment|attention required|verify you are (a )?human|are you a robot|captcha|access denied|unusual traffic|checking your browser/i
+
+// Why a capture is not worth a reviewer's look, or null. bytes/pixels catches near-uniform (blank) JPEGs.
+function pageProblem(f) {
+  const head = (f.title || '') + ' ' + String(f.text || '').slice(0, 500)
+  if (f.gotoError && !f.title && (f.textLength || 0) < 20) return 'did not load: ' + f.gotoError
+  if (BOT_WORDS.test(head)) return 'bot check'
+  if (f.hasPassword && (f.textLength || 0) < 1500 && /sign in|log in|login|password/i.test(head)) return 'login wall'
+  if (f.bytes && f.width && f.height && f.bytes / (f.width * f.height) < 0.012) return 'blank capture'
+  if ((f.textLength || 0) < 20 && !f.images) return 'blank page'
+  return null
+}
+
+// 'dark' or 'light' from a computed background color (rgb, lab/lch, oklab/oklch, color(srgb ...)), by CIE lightness;
+// null when mostly transparent (alpha < 0.5) or unparsable.
+function schemeFromColor(css) {
+  const fn = String(css || '').trim().toLowerCase().match(/^([a-z-]+)\((.*)\)$/)
+  if (!fn) return null
+  const [name, body] = [fn[1], fn[2]]
+  const parts = body.split('/')[0].split(/[\s,]+/).filter(Boolean)
+  const num = (x, scale) => (String(x).endsWith('%') ? parseFloat(x) / 100 * scale : parseFloat(x))
+  const alpha = body.includes('/') ? body.split('/').pop().trim() : /^(rgba|hsla)$/.test(name) ? parts[3] : undefined
+  if (alpha !== undefined && num(alpha, 1) < 0.5) return null
+  const fromRgb = (r, g, b) => {
+    const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+    const y = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+    return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y
+  }
+  let lightness
+  if (name === 'rgb' || name === 'rgba') lightness = fromRgb(...parts.slice(0, 3).map((x) => num(x, 255) / 255))
+  else if (name === 'lab' || name === 'lch') lightness = num(parts[0], 100)
+  else if (name === 'oklab' || name === 'oklch') lightness = num(parts[0], 1) * 100
+  else if (name === 'color' && /^(srgb|display-p3)$/.test(parts[0])) lightness = fromRgb(...parts.slice(1, 4).map((x) => num(x, 1)))
+  if (!Number.isFinite(lightness)) return null
+  return lightness < 50 ? 'dark' : 'light'
+}
+
+// Contact sheet grid: the fewest columns that keep the sheet within maxHeight, tiles cropped to the shot aspect.
+// Tiles are never wider than the source capture (no upscaling).
+function sheetLayout(n, aspect, sourceWidth, maxWidth = 1568, maxHeight = 1000) {
+  const gap = 8
+  const label = 28
+  let best
+  for (let cols = 1; cols <= Math.max(1, n); cols++) {
+    const rows = Math.ceil(n / cols)
+    const tileWidth = Math.min(sourceWidth || maxWidth, Math.floor((maxWidth - gap * (cols + 1)) / cols))
+    const tileHeight = Math.round(tileWidth * aspect)
+    best = { cols, rows, tileWidth, tileHeight, label, gap, width: cols * tileWidth + gap * (cols + 1),
+      height: rows * (tileHeight + label + gap) + gap }
+    if (best.height <= maxHeight) break
+  }
+  return best
+}
+
+// Text a coordinating agent can paste into a reviewer brief: paths and one line per page, never image data.
+function shotBrief(pages, sheet) {
+  const lines = []
+  if (sheet) lines.push('Contact sheet (triage of color and layout only; open the full captures for type): ' + sheet.path)
+  for (const p of pages) {
+    if (p.problem) { lines.push('skipped #' + p.rank + ' ' + p.url + ' (' + p.problem + ')'); continue }
+    const shots = (p.shots || []).map((s) => s.view + ' ' + s.path).join(', ')
+    lines.push('#' + p.rank + ' ' + String(p.title || '').replace(/\s+/g, ' ').slice(0, 70) + ' | ' + p.url + ' | ' + shots
+      + (p.scheme ? ' | ' + p.scheme : ''))
+  }
+  return lines.join('\n')
+}
+
 // Shared by loop.js and search.js. ARGS_PATH, RESULT_PATH and fs come from the script preamble.
 function emit(result) {
   const text = JSON.stringify(result, null, 2)

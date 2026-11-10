@@ -14,9 +14,10 @@ const task = await taskSpace(SPACE)
 const managed = await task.pages()
 const page = managed.find((p) => p.label === 'p1') || managed[0] || await task.newPage()
 
+const GIVEN = parseUrlList(ARGS.urls)
 let t = Date.now()
 let raw = []
-try {
+if (!GIVEN.length) try {
   await page.goto('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(QUERY), { timeout: 12000 })
   raw = await page.evaluate(() => [...document.querySelectorAll('.result')].map((r) => {
     const a = r.querySelector('.result__a')
@@ -25,13 +26,13 @@ try {
 } catch (err) {
   raw = []
 }
-const results = searchResults(raw, 10)
+const results = GIVEN.length ? GIVEN.map((url) => ({ title: '', url, snippet: '' })) : searchResults(raw, 10)
 timing.search_ms = Date.now() - t
 
-let rankedBy = 'search-order'
+let rankedBy = GIVEN.length ? 'given' : 'search-order'
 let jevDetail
-let picked = results.slice(0, K)
-if (auth && results.length > 1) {
+let picked = GIVEN.length ? results : results.slice(0, K)
+if (auth && !GIVEN.length && results.length > 1) {
   t = Date.now()
   try {
     const criteria = searchCriteria(results)
@@ -60,11 +61,12 @@ if (auth && results.length > 1) {
 }
 
 // Text mode fetches pages without a browser and opens only the ones that need one (script-rendered, blocked) with
-// images and fonts blocked. Visual mode opens every page in the browser and saves a viewport screenshot.
-// Both stop at one shared deadline and report the pages that missed it.
+// images and fonts blocked. Visual mode (capture.js) opens every page at a fixed emulated viewport and saves JPEG
+// captures plus a contact sheet. Both share one deadline.
 t = Date.now()
 const SHOTS = Boolean(ARGS.shots && ARGS.shotsDir)
-const deadline = t + (Number(ARGS.budgetMs) > 0 ? Number(ARGS.budgetMs) : SHOTS ? 12000 : 6000)
+const plan = shotPlan(ARGS)
+const deadline = t + (Number(ARGS.budgetMs) > 0 ? Number(ARGS.budgetMs) : SHOTS ? visualBudget(picked.length, plan) : 6000)
 const BLOCKED = ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.avif', '*.svg', '*.ico', '*.woff', '*.woff2', '*.ttf', '*.otf', '*.mp4', '*.webm']
 // The timer is cleared when the page settles first; a pending timer would keep the process alive until the deadline.
 function beforeDeadline(promise) {
@@ -88,31 +90,60 @@ async function fetchDigest(url) {
   }
 }
 
-async function browserDigest(tab, url, shotPath) {
-  if (!shotPath) {
-    try {
-      await tab.cdp('Network.enable', {})
-      await tab.cdp('Network.setBlockedURLs', { urls: BLOCKED })
-    } catch {}
-  }
+async function browserDigest(tab, url) {
+  try {
+    await tab.cdp('Network.enable', {})
+    await tab.cdp('Network.setBlockedURLs', { urls: BLOCKED })
+  } catch {}
   await tab.goto(url, { timeout: Math.max(1000, deadline - Date.now()), waitUntil: 'domcontentloaded' })
-  if (shotPath) {
-    try { await tab.waitForLoadState('load', { timeout: Math.min(3000, Math.max(0, deadline - Date.now() - 1500)) }) } catch {}
-  }
   const digest = await tab.evaluate(() => ({
     title: document.title.slice(0, 120),
     headings: [...document.querySelectorAll('h1,h2,h3')].map((h) => h.textContent.trim().replace(/\s+/g, ' ').slice(0, 80))
       .filter(Boolean).slice(0, 12),
     text: (document.querySelector('main,article') || document.body).innerText.replace(/\s+/g, ' ').slice(0, 600),
   }))
-  if (shotPath) digest.screenshot = await tab.screenshot({ path: shotPath })
   return digest
 }
 
-const pages = picked.map((result) => ({ url: result.url }))
+let sheet = null
+let pages = picked.map((result) => ({ url: result.url }))
+if (SHOTS) {
+  // At most 3 capture tabs (six parallel tabs measured slower: settle 6-7 s each, 11.8 s for six pages); pages beyond
+  // that queue on the tabs that exist. The task space allows 8 pages.
+  const tabs = [page]
+  for (let i = 1; i < Math.min(3, picked.length); i++) {
+    try { tabs.push(await task.newPage()) } catch { break }
+  }
+  const tabFree = tabs.map(() => Promise.resolve())
+  // A hard stop past the deadline: captureReference itself shoots before the deadline when it can, and a page cut
+  // off here keeps whatever shots it already took.
+  pages = await Promise.all(picked.map((result, i) => {
+    const ref = newReference(i + 1, result.url)
+    let timer
+    const late = new Promise((resolve) => { timer = setTimeout(() => resolve(finishReference(ref, true)), Math.max(0, deadline + 3000 - Date.now())) })
+    const slot = i % tabs.length
+    const work = tabFree[slot].then(() => captureReference(tabs[slot], ref, plan, deadline, ARGS.shotsDir))
+      .catch((err) => { ref.problem = ref.problem || String(err && err.message || err).slice(0, 120); return finishReference(ref) })
+    tabFree[slot] = work.then(() => {}, () => {})
+    return Promise.race([work, late]).finally(() => clearTimeout(timer))
+  }))
+  if (plan.sheet) {
+    const sheetStart = Date.now()
+    // A fresh tab: a late page may still be driving one of the capture tabs.
+    const sheetTab = await task.newPage().catch(() => page)
+    sheet = await hardStopSheet(contactSheet(sheetTab, pages, plan, ARGS.shotsDir + '/contact-sheet.jpg'))
+    timing.sheet_ms = Date.now() - sheetStart
+  }
+}
+// The sheet gets its own 4 s outside the page deadline.
+function hardStopSheet(promise) {
+  let timer
+  const late = new Promise((resolve) => { timer = setTimeout(() => resolve(null), 4000) })
+  return Promise.race([promise.catch(() => null), late]).finally(() => clearTimeout(timer))
+}
 const fetched = SHOTS ? [] : await Promise.all(picked.map((result) => beforeDeadline(fetchDigest(result.url))))
 const forBrowser = []
-picked.forEach((result, i) => {
+if (!SHOTS) picked.forEach((result, i) => {
   if (fetched[i] && !fetched[i].error) pages[i] = { url: result.url, via: 'fetch', ...fetched[i] }
   else if (fetched[i] && fetched[i].error) pages[i] = { url: result.url, error: fetched[i].error }
   else forBrowser.push(i)
@@ -121,12 +152,10 @@ if (forBrowser.length) {
   const extra = await Promise.all(forBrowser.slice(1).map(() => task.newPage()))
   const tabs = [page, ...extra]
   await Promise.all(forBrowser.map(async (i, n) => {
-    const host = (() => { try { return new URL(picked[i].url).hostname.replace(/[^a-z0-9.-]/gi, '') } catch { return 'page' } })()
-    const shotPath = SHOTS ? ARGS.shotsDir + '/' + (i + 1) + '-' + host + '.png' : ''
     try {
-      const digest = await beforeDeadline(browserDigest(tabs[n], picked[i].url, shotPath))
+      const digest = await beforeDeadline(browserDigest(tabs[n], picked[i].url))
       pages[i] = digest.error ? { url: picked[i].url, error: digest.error }
-        : !digest.title && !digest.text ? { url: picked[i].url, error: 'no readable content (script shell or bot check)', screenshot: digest.screenshot }
+        : !digest.title && !digest.text ? { url: picked[i].url, error: 'no readable content (script shell or bot check)' }
         : { url: picked[i].url, via: 'browser', ...digest }
     } catch (err) {
       pages[i] = { url: picked[i].url, error: String(err && err.message || err).slice(0, 120) }
@@ -138,7 +167,7 @@ timing.total_ms = Date.now() - startedAt
 await task.finish({ keep: [] }).catch(() => {})
 
 emit({
-  ok: pages.some((p) => !p.error && p.title),
+  ok: SHOTS ? pages.some((p) => !p.problem && p.shots.length) : pages.some((p) => !p.error && p.title),
   query: QUERY,
   goal: GOAL,
   mode: SHOTS ? 'visual' : 'text',
@@ -148,5 +177,7 @@ emit({
   results: results.map((r, i) => ({ rank: i + 1, title: r.title, url: r.url })),
   pages,
   shots_dir: SHOTS ? ARGS.shotsDir : undefined,
+  contact_sheet: sheet || undefined,
+  brief: SHOTS ? shotBrief(pages, sheet) : undefined,
   detail: jevDetail,
 })

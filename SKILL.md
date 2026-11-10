@@ -1,6 +1,6 @@
 ---
 name: egolite-jev
-description: Use with ego-browser for two fast public-web jobs. (1) Web search for examples, references, sources or design inspiration: scripts/search runs a DuckDuckGo search, one Jev ranking call and reads the top pages in one process (about 2–3.5 s for text; SHOTS=1 adds viewport screenshots for visual review in 6–13 s). (2) Clicking several levels deep on a public site to reach a page not linked from the start page (a docs page, a setting, a category) when arrival is checkable by URL or title. Not for forms, private pages, or single-page extraction.
+description: Use with ego-browser for two fast public-web jobs. (1) Web search for examples, references, sources or design inspiration: scripts/search runs a DuckDuckGo search, one Jev ranking call and reads the top pages in one process (about 2–3.5 s for text; SHOTS=1 returns screenshot paths and a contact sheet for visual review in about 3–6 s; URLS captures given pages). (2) Clicking several levels deep on a public site to reach a page not linked from the start page (a docs page, a setting, a category) when arrival is checkable by URL or title. Not for forms, private pages, or single-page extraction.
 ---
 
 # egolite-jev
@@ -37,13 +37,26 @@ in a tab with images and fonts blocked; it took 2.3–3.6 s end to end for three
 search-then-open heredoc loop. All pages share one deadline (`BUDGET_MS`, default 6000 text / 12000 visual); a page that
 misses it comes back with `error: timeout…` instead of holding the run.
 
-**Visual mode** (`SHOTS=1`, optional `SHOTS_DIR`, default a new temp dir): every page opens in the browser and a
-viewport screenshot is saved; `pages[].screenshot` holds the path. Use it when the look matters (design inspiration,
-competitor pages). 5.8–13.4 s for three pages. Pass the paths to an image-capable reviewer (worker-fable or
-director-fable for judging design, scout-haiku only for "did it render, what does it say"); do not read the PNGs into
-the main session.
+**Visual mode** (`SHOTS=1`): for UI/UX references, where color, layout and type matter and a text digest is not
+enough. Every page opens at a fixed emulated viewport, settles (web fonts, images in the capture area, finite
+animations finished to their end state), has consent banners, modal dialogs and their scrims hidden with CSS (nothing
+is clicked or accepted) and is saved as JPEG. 3–6 s for three pages, up to 3 tabs at once (2026-11-09).
 
-- Output: `{ok, query, goal, mode: 'text'|'visual', ranked_by: 'jev'|'search-order', provider, timing{search_ms, jev_ms, open_ms, total_ms}, results[{rank, title, url}], pages[{url, via: 'fetch'|'browser', title, headings, text, screenshot?} | {url, error}], shots_dir?}`. `ok` means at least one page was read.
+- `URLS='https://a.example https://b.example'` captures given pages (up to 6; six took 9.3 s) instead of searching.
+- `SHOT_VIEW=desktop` (default, 1280×800) | `mobile` (390×844, iPhone UA, reloaded) | `both`. DPR 1, so a capture is
+  about 1,400 image tokens (approximate: w×h/750) and is not downscaled. `SHOT_HEIGHT=1600` (max 2400) captures more than one screen.
+- `SHOT_SCHEME=dark|light` sets `prefers-color-scheme`; `pages[].scheme` reports what the page actually showed.
+- `SHEET=0` skips the contact sheet. The sheet is one JPEG grid labelled `#rank host`, for triage of color and layout;
+  open the full capture for type and detail.
+- Pages that are blank, behind a bot check or a login wall come back with `problem` and are left off the sheet.
+  Pages share one deadline (`BUDGET_MS`; default 12 s for up to 3 pages, +8 s per further 3, x1.5 with `SHOT_HEIGHT`);
+  a late page keeps the captures it already has.
+- `brief` is ready to paste into a reviewer's brief: the sheet path, then one line per page (title, URL, capture
+  paths, scheme). Give it to worker-fable or director-fable to judge the design, or to scout-haiku only for "did it
+  render, what does it say". Never read the images into the main session. Motion is not captured: a capture shows
+  the end state of entrance animations.
+
+- Output: `{ok, query, goal, mode: 'text'|'visual', ranked_by: 'jev'|'search-order', provider, timing{search_ms, jev_ms, open_ms, total_ms}, results[{rank, title, url}], pages[{url, via: 'fetch'|'browser', title, headings, text} | {url, error}], shots_dir?}`. Visual mode: `pages[{rank, url, title, line, scheme, shots[{view, path, width, height, kb, approx_tokens}], hidden_overlays, timing{goto_ms, settle_ms, shot_ms}, problem?}]`, `contact_sheet{path, items}`, `brief`. `ok` means at least one page was read (or captured).
 - With no key or an invalid Jev answer it keeps DuckDuckGo's order and says so in `ranked_by`/`detail`.
 - The query goes to DuckDuckGo and result titles/snippets go to Jev: never put private names, project details or
   personal data in `QUERY` or `GOAL`.
@@ -52,7 +65,7 @@ the main session.
 
 ## Recipe: Choosing the Right Browser Tool
 
-- **Web search for examples or sources**: `<skill_dir>/scripts/search`; add `SHOTS=1` when the look matters.
+- **Web search for examples or sources**: `<skill_dir>/scripts/search`; add `SHOTS=1` when the look matters, `URLS=` for known references.
 
 - **Known click or `js()` extract**: Use an `ego-browser` heredoc directly. No Jev needed.
 - **Installed site skill**: Use the matching `siteSkills` / `runSiteTool` if available.
