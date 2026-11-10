@@ -127,7 +127,8 @@ QUERY='saas pricing page ui examples' K=3 ./scripts/search
 
 一个进程内完成：DuckDuckGo 结果、一次 Jev 排序（约 150 ms）、并行读取前 `K` 个页面（默认 3，最多 5）。页面先不开
 浏览器直接取，只有靠脚本渲染或被拦的才开标签页。三页共 2.3–3.6 秒，搜索后逐页打开的 heredoc 循环约 55 秒。`SHOTS=1`
-时每页都用浏览器打开并存一张首屏截图（5.8–13.4 秒），用来找设计灵感。输出 `{ok, mode, ranked_by, timing, results,
+用于找设计参考：每页（或 `URLS` 里给定的页面）按 1280×800 截图（`SHOT_VIEW=mobile|both` 另截 390×844），等字体和图片
+就绪、用 CSS 隐藏 cookie 横幅后存成 JPEG，另出一张联系表和可直接交给评审的路径清单 `brief`（三页 3–6 秒）。输出 `{ok, mode, ranked_by, timing, results,
 pages}`；没有 key 时保留搜索原顺序。查询会发给 DuckDuckGo，结果标题会发给 Jev，不要写私有名称。
 
 ---

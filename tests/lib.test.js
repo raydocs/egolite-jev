@@ -197,3 +197,57 @@ test('digests raw HTML without scripts and sends script shells to the browser', 
   assert.equal(call('digestUsable', digest), true);
   assert.equal(call('digestUsable', call('htmlDigest', '<html><title>App</title><body><div id="root"></div></body></html>')), false);
 });
+
+test('hides consent banners, modal dialogs and their scrims, but keeps a fixed nav', () => {
+  const facts = [
+    { i: 0, tag: 'header', id: '', cls: 'site-header', text: 'Home Pricing Privacy Blog', textLength: 25, position: 'sticky', area: 0.08 },
+    { i: 1, tag: 'div', id: 'onetrust-banner-sdk', cls: '', text: 'Accept all', textLength: 10, position: 'fixed', area: 0.2 },
+    { i: 2, tag: 'div', id: '', cls: 'overlay', text: '', textLength: 0, position: 'fixed', area: 1 },
+    { i: 3, tag: 'div', id: '', cls: 'app', text: 'Lots of app text and a Cookie settings link', textLength: 9000, position: 'fixed', area: 1 },
+  ];
+  assert.deepEqual(Array.from(call('overlayHideList', facts)).sort(), [1, 2]);
+  const modal = [{ i: 0, tag: 'div', role: 'dialog', ariaModal: true, text: 'Join our newsletter', textLength: 19, position: 'fixed', area: 0.3 }];
+  assert.deepEqual(Array.from(call('overlayHideList', modal)), [0]);
+  assert.deepEqual(Array.from(call('overlayHideList', [facts[0], facts[2]])), []);
+});
+
+test('flags captures that are not worth reviewing', () => {
+  assert.equal(call('pageProblem', { title: 'Just a moment...', textLength: 40 }), 'bot check');
+  assert.equal(call('pageProblem', { title: 'Sign in', text: 'Email Password', textLength: 30, hasPassword: true, images: 1 }), 'login wall');
+  assert.equal(call('pageProblem', { title: 'Home', textLength: 900, images: 4, bytes: 9000, width: 1280, height: 800 }), 'blank capture');
+  assert.equal(call('pageProblem', { title: 'Home', textLength: 900, images: 4, bytes: 90000, width: 1280, height: 800 }), null);
+});
+
+test('reads the color scheme from rgb and modern CSS colors, ignoring translucent layers', () => {
+  assert.equal(call('schemeFromColor', 'rgb(255, 255, 255)'), 'light');
+  assert.equal(call('schemeFromColor', 'rgb(9, 9, 11)'), 'dark');
+  assert.equal(call('schemeFromColor', 'lab(1.90334 0.278696 -5.48866)'), 'dark');
+  assert.equal(call('schemeFromColor', 'oklch(0.98 0.01 250)'), 'light');
+  assert.equal(call('schemeFromColor', 'rgba(255, 255, 255, 0.05)'), null);
+  assert.equal(call('schemeFromColor', 'rgba(0, 0, 0, 0)'), null);
+});
+
+test('plans fixed DPR-1 views and a contact sheet that never upscales', () => {
+  const plan = call('shotPlan', { shotView: 'both', shotHeight: 5000, shotScheme: 'sepia' });
+  assert.deepEqual(Array.from(plan.views, (v) => [v.name, v.width, v.height, v.clipHeight]), [['desktop', 1280, 800, 2400], ['mobile', 390, 844, 2400]]);
+  assert.equal(plan.scheme, '');
+  assert.equal(call('imageTokens', 1280, 800), 1366);
+  assert.equal(call('visualBudget', 3, call('shotPlan', {})), 12000);
+  assert.equal(call('visualBudget', 6, plan), 30000);
+  const desktop = call('sheetLayout', 6, 800 / 1280, 1280);
+  assert.deepEqual([desktop.cols, desktop.rows, desktop.tileWidth, desktop.height], [3, 2, 512, 720]);
+  const mobile = call('sheetLayout', 3, 844 / 390, 390);
+  assert.equal(mobile.tileWidth, 390);
+});
+
+test('lists given URLs and writes a path-only brief with skipped pages', () => {
+  assert.deepEqual(Array.from(call('parseUrlList', 'https://a.test/x, ftp://b.test https://a.test/x#top\nhttps://c.test')), ['https://a.test/x', 'https://c.test/']);
+  const brief = call('shotBrief', [
+    { rank: 1, url: 'https://a.test/', title: '<script>x</script> A', scheme: 'dark', shots: [{ view: 'desktop', path: '/s/1-a.test-desktop.jpg' }] },
+    { rank: 2, url: 'https://b.test/', problem: 'bot check', shots: [] },
+  ], { path: '/s/contact-sheet.jpg' });
+  assert.equal(brief.split('\n').length, 3);
+  assert.match(brief, /#1 .* \| https:\/\/a\.test\/ \| desktop \/s\/1-a\.test-desktop\.jpg \| dark/);
+  assert.match(brief, /skipped #2 https:\/\/b\.test\/ \(bot check\)/);
+  assert.doesNotMatch(brief, /base64|data:/);
+});

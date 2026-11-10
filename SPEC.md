@@ -103,7 +103,9 @@ Pass: `ok:true`, url contains `/document`, `elapsed_ms < 20000`, no FAQ name in 
 `scripts/run` with `EGOLITE_JEV_MODE=search`; needs `QUERY` only. DuckDuckGo HTML results through `searchResults`
 (lib), one Jev `choice` over `r1..r10` (`searchCriteria`, `rankResults`; an invalid answer keeps search order), top `K`
 read in parallel: text mode fetches first (`htmlDigest`, `digestUsable`) and opens the rest in tabs with images
-blocked through `page.cdp('Network.setBlockedURLs')`; `SHOTS=1` opens all in tabs and saves viewport screenshots. One
+blocked through `page.cdp('Network.setBlockedURLs')`; `SHOTS=1` (`capture.js`) opens all in tabs at an emulated
+DPR-1 viewport, settles, hides consent overlays (`overlayHideList`), saves JPEG through `Page.captureScreenshot`, flags
+failures (`pageProblem`) and builds a contact sheet (`sheetLayout`) and `brief` (`shotBrief`); `URLS` skips the search. One
 deadline (`BUDGET_MS`) for all pages. Digests emitted through `RESULT_PATH`, task space finished with `keep: []`.
 
 ## Non-goals

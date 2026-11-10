@@ -153,3 +153,46 @@ Visual mode (`SHOTS=1`, all pages in the browser, viewport screenshot each):
 
 The 13.4 s run spent its time loading dribbble and behance, which are image-heavy; the deadline caps it at 12 s of open
 time. A separate reader checked all six screenshots: real content, no consent walls or bot checks.
+
+## Seventh pass: visual references (`SHOTS=1`)
+
+Fixed URLs (saasframe pricing, linear.app, dribbble VPN landing tag), old and new run alternately (old, new, old, …) so
+search results and warm caches do not favor one arm. "Old" is the previous visual path (goto, wait for `load` up to
+3 s, `page.screenshot()` PNG); "new" is `capture.js` on the final code. Times are inside the process; wall time adds
+about 0.25 s. Render classes come from a reader looking at every capture.
+
+| Round 2, final code (3 runs each) | Old | New |
+|---|---|---|
+| Total, median (range) | 3047 ms (2258–4337) | 4963 ms (4058–5705) |
+| Settle per page, median | 458 ms | 1385 ms |
+| Capture call per page, median | 1222 ms | 1436 ms |
+| Rendered / partial / blank, of 9 | 3 / 3 / 0 | 7 / 2 / 0 |
+| Consent box or promo modal visible, of 9 | 3 (every saasframe capture) | 0 |
+| Image | PNG 1600×978, median 314 KB, ~1,530 tokens after downscale | JPEG 1280×800, median 80 KB, ~1,366 tokens, not downscaled |
+| Contact sheet | none | 150–340 ms, 1568×364, ~760 tokens |
+
+Round 1 (4 runs each, before the shadow-root fix) gave medians of 4118 ms old and 3932 ms new, so the two arms overlap:
+the new path is not faster, and with its settle step it is often 1–2 s slower. What it buys is captures a reviewer
+can use: the partial renders are linear.app's fade-in hero caught mid-animation (old 3 of 3, new 2 of 3; it animates
+from script, which finishing CSS and Web Animations does not reach), and the saasframe privacy box, which lives in a
+shadow root, is hidden.
+
+Other modes, final code: `SHOT_VIEW=both` 5.6 s; `SHOT_VIEW=mobile` 2.1 s for three pages (phone layouts, confirmed by
+the reader); six `URLS` 9.3 s with 3 tabs at a time (11.8 s with six tabs at once, settle 6–7 s each); six at
+`SHOT_HEIGHT=1600` 16.9 s, 6 of 6; a `QUERY` search with `SHOTS=1` 11.3 s; text mode unchanged (`QUERY` 4.5 s, all
+three via fetch). `BUDGET_MS=300` still emits JSON, pages marked `late`, finished captures kept. One run in each arm took
+15+ s wall once and did not repeat; it comes from ego start or finish, not the capture code.
+
+Knobs and why:
+- **1280×800 desktop, 390×844 mobile, DPR 1.** Image tokens scale with pixels (roughly w×h/750; approximate) and
+  vision models downscale past about a 1568 px long edge or 1.15 MP; 1280×800 fits whole. The browser's own DPR 2 gives
+  3200×1956, which would be downscaled anyway.
+- **JPEG q70.** Format changes bytes and capture time, not tokens; JPEG encoded faster than WebP in the probe
+  (68 vs 245 ms on a warm tab) and every image reader accepts it.
+- **One screen by default, `SHOT_HEIGHT` up to 2400.** Full-page strips get downscaled until type is illegible.
+- **Settle, then shoot regardless.** Fonts, in-range images and finite CSS/Web Animations, capped at 2.5 s; a late page
+  still yields a capture. Script-driven motion is not finished, and motion itself cannot be shown in one frame.
+- **Hide, never click.** Consent and modal overlays (also inside open shadow roots) are hidden by keyword-gated CSS, so
+  no consent is given; fixed nav bars stay.
+- **Three tabs at a time.** Six parallel tabs made every settle slower than doing them in two batches.
+- **Contact sheet for triage only.** Each tile gets a third of the width; color and layout read, type does not.

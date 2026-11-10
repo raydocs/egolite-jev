@@ -12,8 +12,8 @@ MODE="${EGOLITE_JEV_MODE:-navigate}"
 source "$ROOT/keys.sh"
 
 if [[ "$MODE" == "search" ]]; then
-  if [[ -z "${QUERY:-}" ]]; then
-    echo 'Set QUERY, e.g. QUERY="vpn landing page design" (optional GOAL to rank results)' >&2
+  if [[ -z "${QUERY:-}" && -z "${URLS:-}" ]]; then
+    echo 'Set QUERY, e.g. QUERY="vpn landing page design" (optional GOAL to rank results), or URLS to read given pages' >&2
     exit 2
   fi
   SCRIPT="$ROOT/search.js"
@@ -56,6 +56,11 @@ payload = {
     "k": int(os.environ.get("K") or 3),
     "shots": os.environ.get("SHOTS") == "1",
     "budgetMs": int(os.environ.get("BUDGET_MS") or 0),
+    "urls": os.environ.get("URLS") or "",
+    "shotView": os.environ.get("SHOT_VIEW") or "desktop",
+    "shotScheme": os.environ.get("SHOT_SCHEME") or "",
+    "shotHeight": int(os.environ.get("SHOT_HEIGHT") or 0),
+    "sheet": os.environ.get("SHEET") != "0",
 }
 if payload["shots"]:
     import tempfile
@@ -75,6 +80,7 @@ status=0
 {
   printf '%s\n' "$PREAMBLE"
   cat "$ROOT/lib.js"
+  if [[ "$MODE" == "search" ]]; then cat "$ROOT/capture.js"; fi
   cat "$SCRIPT"
 } | ego-browser nodejs >&2 || status=$?
 if [[ -s "$RESULT_PATH" ]]; then
