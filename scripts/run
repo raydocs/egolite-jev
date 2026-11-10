@@ -54,7 +54,13 @@ payload = {
     "provider": os.environ.get("JEV_PROVIDER") or "",
     "query": os.environ.get("QUERY") or "",
     "k": int(os.environ.get("K") or 3),
+    "shots": os.environ.get("SHOTS") == "1",
+    "budgetMs": int(os.environ.get("BUDGET_MS") or 0),
 }
+if payload["shots"]:
+    import tempfile
+    payload["shotsDir"] = os.path.abspath(os.environ.get("SHOTS_DIR") or tempfile.mkdtemp(prefix="egolite-jev-shots-"))
+    os.makedirs(payload["shotsDir"], exist_ok=True)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(payload, f)
 os.chmod(path, 0o600)

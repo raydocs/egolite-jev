@@ -131,3 +131,25 @@ search, one Jev ranking call and parallel page reads in one `ego-browser nodejs`
 A heredoc loop that searches, reads the results and opens pages one round at a time took ~55 s for the same kind of
 query in the prototype runs. In the prototype, Jev's order beat DuckDuckGo's on 2 of 3 queries (gallery and case-study
 pages moved ahead of listicles); the time saved comes from removing coding-model turns, not from the ranking.
+
+## Sixth pass: fetch first, one deadline, visual mode
+
+Text mode fetches each page with plain HTTP and opens a browser tab (images and fonts blocked) only when the HTML has
+no readable text. A pending deadline timer had kept the process alive until the deadline (1.75 s measured inside,
+7.5 s wall); it is now cleared. Wall time includes process start.
+
+| Query | Pages via | search_ms | jev_ms | open_ms | wall_ms |
+|---|---|---|---|---|---|
+| saas pricing page ui examples (was 9454 wall) | fetch, browser, fetch | 1015 | 137 | 522 | 2491 |
+| VPN landing page design inspiration | browser, fetch, browser | 801 | 146 | 2307 | 3568 |
+| privacy app website hero section examples | fetch ×3 | 860 | 129 | 1027 | 2323 |
+
+Visual mode (`SHOTS=1`, all pages in the browser, viewport screenshot each):
+
+| Query | open_ms | wall_ms | Screenshots |
+|---|---|---|---|
+| VPN landing page design inspiration | 11978 | 13381 | 3/3 rendered |
+| saas pricing page ui examples | 4468 | 5802 | 3/3 rendered |
+
+The 13.4 s run spent its time loading dribbble and behance, which are image-heavy; the deadline caps it at 12 s of open
+time. A separate reader checked all six screenshots: real content, no consent walls or bot checks.

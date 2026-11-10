@@ -125,9 +125,11 @@ GOAL='Open the Docs page' \
 QUERY='saas pricing page ui examples' K=3 ./scripts/search
 ```
 
-DuckDuckGo results, one Jev ranking call (~150 ms) and the top `K` pages (default 3, max 5) opened in parallel, in
-one process: 3.6–4.9 s for three pages, against ~55 s for a search-then-open heredoc loop. It prints
-`{ok, ranked_by, timing, results, pages}`; without a key it keeps the search order. The query goes to DuckDuckGo and
+DuckDuckGo results, one Jev ranking call (~150 ms) and the top `K` pages (default 3, max 5) read in parallel, in one
+process. Pages are fetched without a browser first; only script-rendered or blocked ones open in a tab. 2.3–3.6 s for
+three pages, against ~55 s for a search-then-open heredoc loop. `SHOTS=1` opens every page in the browser and saves a
+viewport screenshot per page (5.8–13.4 s), for design inspiration. It prints `{ok, mode, ranked_by, timing, results,
+pages}`; without a key it keeps the search order. The query goes to DuckDuckGo and
 result titles to Jev, so keep private names out of it.
 
 ---

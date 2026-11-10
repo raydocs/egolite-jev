@@ -1,13 +1,14 @@
 ---
 name: egolite-jev
-description: Use with ego-browser for two fast public-web jobs. (1) Web search for examples, references or sources: scripts/search runs a DuckDuckGo search, one Jev ranking call and opens the top pages in parallel in one process (3.5–5 s instead of several heredoc rounds). (2) Clicking several levels deep on a public site to reach a page not linked from the start page (a docs page, a setting, a category) when arrival is checkable by URL or title. Not for forms, private pages, or single-page extraction.
+description: Use with ego-browser for two fast public-web jobs. (1) Web search for examples, references, sources or design inspiration: scripts/search runs a DuckDuckGo search, one Jev ranking call and reads the top pages in one process (about 2–3.5 s for text; SHOTS=1 adds viewport screenshots for visual review in 6–13 s). (2) Clicking several levels deep on a public site to reach a page not linked from the start page (a docs page, a setting, a category) when arrival is checkable by URL or title. Not for forms, private pages, or single-page extraction.
 ---
 
 # egolite-jev
 
 Delegate bounded DOM navigation to a fast candidate-selection loop inside ego-browser. Jev picks among opaque, pre-ranked candidate actions; the runner returns checkable evidence. `DONE` from Jev is never treated as success without independent verification.
 
-Requires: ego-lite 0.6.2.9 (`ego-browser` on PATH; documented `taskSpace()`/`page.*` API), and the `ego-browser` skill.
+Requires: ego-lite 0.6.2.9 (`ego-browser` on PATH). Running `scripts/search` or `scripts/run` needs only this file; read the
+`ego-browser` skill only before writing your own heredoc follow-up.
 
 ## Default dispatch
 
@@ -30,11 +31,19 @@ QUERY='saas pricing page ui examples' GOAL='Find pricing page designs to study' 
 ```
 
 One `ego-browser nodejs` process: DuckDuckGo HTML results (ads and duplicate destinations dropped, top 10),
-one Jev choice call that ranks them against `GOAL` (default: `QUERY`), then the top `K` (1–5, default 3) opened in
-parallel tabs and digested (title, h1–h3, first 600 characters of `main`/`article`). Measured 3.6–4.9 s for
-three pages, Jev 150–180 ms (2026-11-09), against ~55 s for a search-then-open heredoc loop.
+one Jev choice call that ranks them against `GOAL` (default: `QUERY`), then the top `K` (1–5, default 3) read in
+parallel. Text mode (default) fetches each page without a browser and opens only the script-rendered or blocked ones
+in a tab with images and fonts blocked; it took 2.3–3.6 s end to end for three pages (2026-11-09), against ~55 s for a
+search-then-open heredoc loop. All pages share one deadline (`BUDGET_MS`, default 6000 text / 12000 visual); a page that
+misses it comes back with `error: timeout…` instead of holding the run.
 
-- Output: `{ok, query, goal, ranked_by: 'jev'|'search-order', provider, timing{search_ms, jev_ms, open_ms, total_ms}, results[{rank, title, url}], pages[{url, title, headings, text} | {url, error}]}`. `ok` means at least one page opened.
+**Visual mode** (`SHOTS=1`, optional `SHOTS_DIR`, default a new temp dir): every page opens in the browser and a
+viewport screenshot is saved; `pages[].screenshot` holds the path. Use it when the look matters (design inspiration,
+competitor pages). 5.8–13.4 s for three pages. Pass the paths to an image-capable reviewer (worker-fable or
+director-fable for judging design, scout-haiku only for "did it render, what does it say"); do not read the PNGs into
+the main session.
+
+- Output: `{ok, query, goal, mode: 'text'|'visual', ranked_by: 'jev'|'search-order', provider, timing{search_ms, jev_ms, open_ms, total_ms}, results[{rank, title, url}], pages[{url, via: 'fetch'|'browser', title, headings, text, screenshot?} | {url, error}], shots_dir?}`. `ok` means at least one page was read.
 - With no key or an invalid Jev answer it keeps DuckDuckGo's order and says so in `ranked_by`/`detail`.
 - The query goes to DuckDuckGo and result titles/snippets go to Jev: never put private names, project details or
   personal data in `QUERY` or `GOAL`.
@@ -43,7 +52,7 @@ three pages, Jev 150–180 ms (2026-11-09), against ~55 s for a search-then-open
 
 ## Recipe: Choosing the Right Browser Tool
 
-- **Web search for examples or sources**: `<skill_dir>/scripts/search`.
+- **Web search for examples or sources**: `<skill_dir>/scripts/search`; add `SHOTS=1` when the look matters.
 
 - **Known click or `js()` extract**: Use an `ego-browser` heredoc directly. No Jev needed.
 - **Installed site skill**: Use the matching `siteSkills` / `runSiteTool` if available.

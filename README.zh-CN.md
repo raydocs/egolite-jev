@@ -125,9 +125,10 @@ GOAL='Open the Docs page' \
 QUERY='saas pricing page ui examples' K=3 ./scripts/search
 ```
 
-一个进程内完成：DuckDuckGo 结果、一次 Jev 排序（约 150 ms）、并行打开前 `K` 个页面（默认 3，最多 5）。三页共
-3.6–4.9 秒，搜索后逐页打开的 heredoc 循环约 55 秒。输出 `{ok, ranked_by, timing, results, pages}`；没有 key 时保留
-搜索原顺序。查询会发给 DuckDuckGo，结果标题会发给 Jev，不要写私有名称。
+一个进程内完成：DuckDuckGo 结果、一次 Jev 排序（约 150 ms）、并行读取前 `K` 个页面（默认 3，最多 5）。页面先不开
+浏览器直接取，只有靠脚本渲染或被拦的才开标签页。三页共 2.3–3.6 秒，搜索后逐页打开的 heredoc 循环约 55 秒。`SHOTS=1`
+时每页都用浏览器打开并存一张首屏截图（5.8–13.4 秒），用来找设计灵感。输出 `{ok, mode, ranked_by, timing, results,
+pages}`；没有 key 时保留搜索原顺序。查询会发给 DuckDuckGo，结果标题会发给 Jev，不要写私有名称。
 
 ---
 
