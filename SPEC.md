@@ -102,7 +102,9 @@ Pass: `ok:true`, url contains `/document`, `elapsed_ms < 20000`, no FAQ name in 
 
 `scripts/run` with `EGOLITE_JEV_MODE=search`; needs `QUERY` only. DuckDuckGo HTML results through `searchResults`
 (lib), one Jev `choice` over `r1..r10` (`searchCriteria`, `rankResults`; an invalid answer keeps search order), top `K`
-opened in parallel tabs, digests emitted through `RESULT_PATH`, task space finished with `keep: []`.
+read in parallel: text mode fetches first (`htmlDigest`, `digestUsable`) and opens the rest in tabs with images
+blocked through `page.cdp('Network.setBlockedURLs')`; `SHOTS=1` opens all in tabs and saves viewport screenshots. One
+deadline (`BUDGET_MS`) for all pages. Digests emitted through `RESULT_PATH`, task space finished with `keep: []`.
 
 ## Non-goals
 

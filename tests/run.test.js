@@ -83,6 +83,10 @@ test('search pipes search.js and needs only QUERY', () => {
     const result = search({ QUERY: 'vpn landing page design' });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), { ok: true, reason: 'done' });
+    writeFileSync(join(home, 'bin/ego-browser'), fakeBrowser(`cat > "$TMPDIR/in.js"; args="$(sed -n 's/^const ARGS_PATH = "\\(.*\\)"$/\\1/p' "$TMPDIR/in.js")"; grep -q '"shots": true' "$args" && grep -q '"shotsDir": "${home}/shots"' "$args" || exit 1; exec < "$TMPDIR/in.js"`), { mode: 0o700 });
+    const shots = search({ QUERY: 'vpn landing page design', SHOTS: '1', SHOTS_DIR: join(home, 'shots') });
+    assert.equal(shots.status, 0, shots.stderr);
+    assert.ok(existsSync(join(home, 'shots')));
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

@@ -209,6 +209,36 @@ function rankResults(answer, results) {
     .map((key) => results[Number(key.slice(1)) - 1])
 }
 
+function decodeEntities(s) {
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+  return s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (m, e) => {
+    const k = e.toLowerCase()
+    if (k[0] !== '#') return named[k]
+    try { return String.fromCodePoint(k[1] === 'x' ? parseInt(k.slice(2), 16) : parseInt(k.slice(1), 10)) } catch { return m }
+  })
+}
+
+function htmlText(s) {
+  return decodeEntities(String(s || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+}
+
+// Title, h1-h3 and the start of main/article/body from raw HTML, for pages fetched without a browser.
+function htmlDigest(html) {
+  const clean = String(html || '').slice(0, 3000000).replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<(script|style|noscript|svg|template|iframe)\b[\s\S]*?<\/\1>/gi, ' ')
+  const title = htmlText((clean.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1]).slice(0, 120)
+  const headings = [...clean.matchAll(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
+    .map((m) => htmlText(m[1]).slice(0, 80)).filter(Boolean).slice(0, 12)
+  const body = (clean.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i) || clean.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)
+    || clean.match(/<body\b[^>]*>([\s\S]*)/i) || [null, clean])[1]
+  return { title, headings, text: htmlText(body).slice(0, 600) }
+}
+
+// A fetched page is usable when it has real text; script-rendered shells and bot walls go to the browser.
+function digestUsable(digest) {
+  return Boolean(digest && digest.text && digest.text.length >= 200 && (digest.title || digest.headings.length))
+}
+
 // Shared by loop.js and search.js. ARGS_PATH, RESULT_PATH and fs come from the script preamble.
 function emit(result) {
   const text = JSON.stringify(result, null, 2)

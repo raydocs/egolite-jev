@@ -186,3 +186,14 @@ test('orders search results by a valid Jev answer and rejects an invalid one', (
   assert.deepEqual(Array.from(call('rankResults', answer, results), r => r.url), ['https://c.test/', 'https://b.test/', 'https://a.test/']);
   assert.equal(call('rankResults', { ...answer, choice: 'r1' }, results), null);
 });
+
+test('digests raw HTML without scripts and sends script shells to the browser', () => {
+  const html = '<html><head><title>Pricing &amp; Plans</title><script>var h1 = "<h1>no</h1>"</script></head><body>'
+    + '<nav>Menu</nav><main><h1>Plans</h1><p>' + 'Compare tiers. '.repeat(20) + '&#x2014; done</p></main></body></html>';
+  const digest = call('htmlDigest', html);
+  assert.equal(digest.title, 'Pricing & Plans');
+  assert.deepEqual(Array.from(digest.headings), ['Plans']);
+  assert.ok(digest.text.startsWith('Plans Compare tiers.') && !digest.text.includes('Menu'), digest.text);
+  assert.equal(call('digestUsable', digest), true);
+  assert.equal(call('digestUsable', call('htmlDigest', '<html><title>App</title><body><div id="root"></div></body></html>')), false);
+});
