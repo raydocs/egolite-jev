@@ -16,6 +16,7 @@ if (!GOAL) fail('Set GOAL')
 if (!SUCCESS_MATCH) fail('Set SUCCESS_MATCH')
 const auth = jevAuth(ARGS)
 if (!auth) fail('Set OPENROUTER_API_KEY or TYPESAFE_API_KEY')
+preconnect(auth)
 
 const log = []
 const history = []
