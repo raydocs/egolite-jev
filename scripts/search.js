@@ -7,6 +7,7 @@ const K = Math.max(1, Math.min(5, Number(ARGS.k || 3)))
 const SPACE = String(ARGS.space || 'egolite-jev-search').trim()
 const MODEL = String(ARGS.model || 'typesafe/jev-1.14').trim()
 const auth = jevAuth(ARGS)
+if (QUERY && !String(ARGS.urls || '').trim()) preconnect(auth)
 const startedAt = Date.now()
 const timing = { search_ms: 0, jev_ms: 0, open_ms: 0, total_ms: 0 }
 
